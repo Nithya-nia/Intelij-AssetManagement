@@ -1,0 +1,130 @@
+<div class="asset-history-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Asset History & Audit Trail</h4>
+      <p class="text-muted small mb-0">Immutable assignment logs, return conditions, and employee tenure asset histories</p>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">
+      <i class="bi bi-arrow-counterclockwise"></i> Reset Filters
+    </button>
+  </div>
+
+  <!-- Filter Toolbar -->
+  <div class="card card-custom mb-4 p-3 bg-white">
+    <div class="row g-3">
+      <div class="col-12 col-md-3">
+        <label class="form-label small">Search Employee</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Name or ID..."
+            [(ngModel)]="searchEmployee"
+            (keyup.enter)="applyFilters()"
+          />
+        </div>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small">Asset Type</label>
+        <select class="form-select" [(ngModel)]="selectedAssetType" (change)="applyFilters()">
+          <option value="ALL">All Asset Types</option>
+          <option *ngFor="let t of assetTypes" [value]="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small">Status</label>
+        <select class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="ALL">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Returned">Returned</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small">From Date</label>
+        <input type="date" class="form-control" [(ngModel)]="fromDate" (change)="applyFilters()" />
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small">To Date</label>
+        <input type="date" class="form-control" [(ngModel)]="toDate" (change)="applyFilters()" />
+      </div>
+
+      <div class="col-12 col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary w-100" (click)="applyFilters()">
+          <i class="bi bi-funnel"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Table -->
+  <div class="card card-custom">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-modern mb-0">
+          <thead>
+            <tr>
+              <th>Employee Name & ID</th>
+              <th>Asset Type</th>
+              <th>Asset Details</th>
+              <th>Identifier (SN / IMEI / SIM)</th>
+              <th>Assigned Date</th>
+              <th>Returned Date</th>
+              <th>Status</th>
+              <th>Return Condition</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of historyList">
+              <td>
+                <div class="fw-semibold text-dark">{{ item.employeeName }}</div>
+                <div class="small text-muted">{{ item.employeeId }}</div>
+              </td>
+              <td>
+                <span *ngIf="item.assetType === 'Laptop'" class="badge bg-primary-subtle text-primary border">
+                  <i class="bi bi-laptop me-1"></i> Laptop
+                </span>
+                <span *ngIf="item.assetType === 'Mobile'" class="badge bg-info-subtle text-info-emphasis border">
+                  <i class="bi bi-phone me-1"></i> Mobile
+                </span>
+                <span *ngIf="item.assetType === 'SIM'" class="badge bg-purple-subtle text-purple border">
+                  <i class="bi bi-sim me-1"></i> SIM ({{ item.provider || 'Carrier' }})
+                </span>
+              </td>
+              <td class="fw-semibold">{{ item.assetName }}</td>
+              <td><code>{{ item.assetIdentifier }}</code></td>
+              <td>{{ item.assignedDate }}</td>
+              <td>{{ item.returnedDate || '—' }}</td>
+              <td>
+                <span *ngIf="item.assignmentStatus === 'Active'" class="badge badge-status-active">Active</span>
+                <span *ngIf="item.assignmentStatus === 'Returned'" class="badge badge-status-retired">Returned</span>
+              </td>
+              <td>
+                <span *ngIf="item.returnCondition" class="small text-muted">{{ item.returnCondition }}</span>
+                <span *ngIf="!item.returnCondition" class="text-muted small">—</span>
+              </td>
+              <td class="small text-muted">{{ item.remarks || '—' }}</td>
+            </tr>
+            <tr *ngIf="loading">
+              <td colspan="9" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading historical records...
+              </td>
+            </tr>
+            <tr *ngIf="!loading && historyList.length === 0">
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-clock-history fs-2 d-block mb-2 text-secondary"></i>
+                No historical assignment records found matching your filters.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

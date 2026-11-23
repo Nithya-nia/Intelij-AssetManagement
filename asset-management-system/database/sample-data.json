@@ -1,0 +1,307 @@
+{
+  "database": "asset_management",
+  "collections": {
+    "admins": [
+      {
+        "_id": { "$oid": "66e0a0000000000000000001" },
+        "username": "admin",
+        "password": "$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.AQubh4a",
+        "fullName": "System Administrator",
+        "email": "admin@company.com",
+        "role": "ROLE_ADMIN",
+        "createdAt": { "$date": "2024-01-01T00:00:00.000Z" }
+      }
+    ],
+    "employees": [
+      {
+        "_id": { "$oid": "66e0b0000000000000000001" },
+        "employeeId": "EMP-101",
+        "name": "Preetha Sharma",
+        "department": "Engineering",
+        "designation": "Senior Software Engineer",
+        "joiningDate": { "$date": "2023-09-01T00:00:00.000Z" },
+        "email": "preetha.s@company.com",
+        "phone": "9876500001",
+        "status": "Active",
+        "createdAt": { "$date": "2023-09-01T09:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e0b0000000000000000002" },
+        "employeeId": "EMP-102",
+        "name": "Rahul Verma",
+        "department": "Product",
+        "designation": "Product Manager",
+        "joiningDate": { "$date": "2024-02-15T00:00:00.000Z" },
+        "email": "rahul.v@company.com",
+        "phone": "9876500002",
+        "status": "Active",
+        "createdAt": { "$date": "2024-02-15T09:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e0b0000000000000000003" },
+        "employeeId": "EMP-103",
+        "name": "Ananya Iyer",
+        "department": "Human Resources",
+        "designation": "HR Generalist",
+        "joiningDate": { "$date": "2024-05-10T00:00:00.000Z" },
+        "email": "ananya.i@company.com",
+        "phone": "9876500003",
+        "status": "Active",
+        "createdAt": { "$date": "2024-05-10T09:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e0b0000000000000000004" },
+        "employeeId": "EMP-104",
+        "name": "Vikram Patel",
+        "department": "Finance",
+        "designation": "Senior Accountant",
+        "joiningDate": { "$date": "2023-05-01T00:00:00.000Z" },
+        "email": "vikram.p@company.com",
+        "phone": "9876500004",
+        "status": "Inactive",
+        "createdAt": { "$date": "2023-05-01T09:00:00.000Z" }
+      }
+    ],
+    "laptops": [
+      {
+        "_id": { "$oid": "66e0c0000000000000000001" },
+        "laptopId": "LPT-001",
+        "name": "ThinkPad T14 Gen 4",
+        "brand": "Lenovo",
+        "serialNumber": "SN-LNV-2024-001",
+        "configuration": "Core i7, 16GB, 512GB SSD",
+        "processor": "Intel Core i7-1365U",
+        "ram": "16 GB DDR5",
+        "storage": "512 GB NVMe SSD",
+        "purchaseDate": { "$date": "2024-01-10T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2027-01-10T00:00:00.000Z" },
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-101",
+        "assignedEmployeeName": "Preetha Sharma",
+        "assignedDate": { "$date": "2024-03-01T00:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e0c0000000000000000002" },
+        "laptopId": "LPT-002",
+        "name": "MacBook Pro 14",
+        "brand": "Apple",
+        "serialNumber": "SN-APL-2024-002",
+        "configuration": "Apple M3 Pro, 18GB, 512GB SSD",
+        "processor": "Apple M3 Pro",
+        "ram": "18 GB Unified",
+        "storage": "512 GB SSD",
+        "purchaseDate": { "$date": "2024-06-01T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2026-06-01T00:00:00.000Z" },
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-102",
+        "assignedEmployeeName": "Rahul Verma",
+        "assignedDate": { "$date": "2024-07-01T00:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e0c0000000000000000003" },
+        "laptopId": "LPT-003",
+        "name": "Latitude 5440",
+        "brand": "Dell",
+        "serialNumber": "SN-DEL-2024-003",
+        "configuration": "Core i5, 16GB, 512GB SSD",
+        "processor": "Intel Core i5-1335U",
+        "ram": "16 GB DDR4",
+        "storage": "512 GB SSD",
+        "purchaseDate": { "$date": "2024-08-01T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2027-08-01T00:00:00.000Z" },
+        "status": "Available"
+      }
+    ],
+    "laptop_assignments": [
+      {
+        "_id": { "$oid": "66e0d0000000000000000001" },
+        "laptopId": "66e0c0000000000000000001",
+        "laptopCode": "LPT-001",
+        "laptopName": "ThinkPad T14 Gen 4",
+        "laptopSerial": "SN-LNV-2024-001",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "department": "Engineering",
+        "assignedDate": { "$date": "2024-03-01T00:00:00.000Z" },
+        "status": "Active",
+        "remarks": "Allocated for engineering development"
+      }
+    ],
+    "mobiles": [
+      {
+        "_id": { "$oid": "66e0e0000000000000000001" },
+        "mobileId": "MOB-001",
+        "name": "Galaxy S23",
+        "brand": "Samsung",
+        "imeiNumber": "864201049281001",
+        "purchaseDate": { "$date": "2024-03-01T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2026-03-01T00:00:00.000Z" },
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-101",
+        "assignedEmployeeName": "Preetha Sharma",
+        "assignedDate": { "$date": "2024-04-01T00:00:00.000Z" },
+        "activeSimCount": 2
+      },
+      {
+        "_id": { "$oid": "66e0e0000000000000000002" },
+        "mobileId": "MOB-002",
+        "name": "iPhone 15",
+        "brand": "Apple",
+        "imeiNumber": "358765091234567",
+        "purchaseDate": { "$date": "2024-05-01T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2026-05-01T00:00:00.000Z" },
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-102",
+        "assignedEmployeeName": "Rahul Verma",
+        "assignedDate": { "$date": "2024-06-01T00:00:00.000Z" },
+        "activeSimCount": 1
+      },
+      {
+        "_id": { "$oid": "66e0e0000000000000000003" },
+        "mobileId": "MOB-003",
+        "name": "Pixel 8",
+        "brand": "Google",
+        "imeiNumber": "354982103948576",
+        "purchaseDate": { "$date": "2024-09-01T00:00:00.000Z" },
+        "warrantyExpiryDate": { "$date": "2026-09-01T00:00:00.000Z" },
+        "status": "Available",
+        "activeSimCount": 0
+      }
+    ],
+    "mobile_assignments": [
+      {
+        "_id": { "$oid": "66e0f0000000000000000001" },
+        "mobileId": "66e0e0000000000000000001",
+        "mobileCode": "MOB-001",
+        "mobileName": "Galaxy S23",
+        "imeiNumber": "864201049281001",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "department": "Engineering",
+        "assignedDate": { "$date": "2024-04-01T00:00:00.000Z" },
+        "status": "Active",
+        "remarks": "Dual-SIM testing mobile"
+      }
+    ],
+    "sim_cards": [
+      {
+        "_id": { "$oid": "66e100000000000000000001" },
+        "simId": "SIM-001",
+        "mobileNumber": "9876543210",
+        "provider": "Airtel",
+        "simSerialNumber": "899110120240001",
+        "simType": "Physical SIM",
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-101",
+        "assignedEmployeeName": "Preetha Sharma",
+        "assignedMobileId": "MOB-001",
+        "assignedMobileName": "Galaxy S23",
+        "latestRechargePlan": "Corporate Unlimited 84D",
+        "latestRechargeAmount": 719.0,
+        "latestRechargeDate": { "$date": "2024-08-15T00:00:00.000Z" },
+        "latestPlanEndDate": { "$date": "2024-11-09T00:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e100000000000000000002" },
+        "simId": "SIM-002",
+        "mobileNumber": "9876543211",
+        "provider": "Jio",
+        "simSerialNumber": "899120120240002",
+        "simType": "Physical SIM",
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-101",
+        "assignedEmployeeName": "Preetha Sharma",
+        "assignedMobileId": "MOB-001",
+        "assignedMobileName": "Galaxy S23",
+        "latestRechargePlan": "5G Data Plus 28D",
+        "latestRechargeAmount": 349.0,
+        "latestRechargeDate": { "$date": "2024-10-01T00:00:00.000Z" },
+        "latestPlanEndDate": { "$date": "2024-11-03T00:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e100000000000000000003" },
+        "simId": "SIM-003",
+        "mobileNumber": "9876543212",
+        "provider": "Vi",
+        "simSerialNumber": "899130120240003",
+        "simType": "eSIM",
+        "status": "Assigned",
+        "assignedEmployeeId": "EMP-102",
+        "assignedEmployeeName": "Rahul Verma",
+        "assignedMobileId": "MOB-002",
+        "assignedMobileName": "iPhone 15",
+        "latestRechargePlan": "Unlimited Calling + 100GB",
+        "latestRechargeAmount": 999.0,
+        "latestRechargeDate": { "$date": "2024-10-20T00:00:00.000Z" },
+        "latestPlanEndDate": { "$date": "2025-01-13T00:00:00.000Z" }
+      },
+      {
+        "_id": { "$oid": "66e100000000000000000004" },
+        "simId": "SIM-004",
+        "mobileNumber": "9876543213",
+        "provider": "BSNL",
+        "simSerialNumber": "899140120240004",
+        "simType": "Physical SIM",
+        "status": "Available"
+      }
+    ],
+    "sim_assignments": [
+      {
+        "_id": { "$oid": "66e110000000000000000001" },
+        "simId": "SIM-001",
+        "simCode": "SIM-001",
+        "mobileNumber": "9876543210",
+        "provider": "Airtel",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "mobileId": "MOB-001",
+        "mobileName": "Galaxy S23",
+        "issuedDate": { "$date": "2024-04-01T00:00:00.000Z" },
+        "status": "Active",
+        "remarks": "Primary company SIM"
+      },
+      {
+        "_id": { "$oid": "66e110000000000000000002" },
+        "simId": "SIM-002",
+        "simCode": "SIM-002",
+        "mobileNumber": "9876543211",
+        "provider": "Jio",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "mobileId": "MOB-001",
+        "mobileName": "Galaxy S23",
+        "issuedDate": { "$date": "2024-05-01T00:00:00.000Z" },
+        "status": "Active",
+        "remarks": "Secondary data SIM (Preetha SIM 2)"
+      }
+    ],
+    "recharges": [
+      {
+        "_id": { "$oid": "66e120000000000000000001" },
+        "simId": "SIM-001",
+        "mobileNumber": "9876543210",
+        "provider": "Airtel",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "rechargeAmount": 719.0,
+        "rechargePlan": "Corporate Unlimited 84D",
+        "rechargeDate": { "$date": "2024-08-15T00:00:00.000Z" },
+        "planEndDate": { "$date": "2024-11-09T00:00:00.000Z" },
+        "remarks": "Quarterly corporate plan"
+      },
+      {
+        "_id": { "$oid": "66e120000000000000000002" },
+        "simId": "SIM-002",
+        "mobileNumber": "9876543211",
+        "provider": "Jio",
+        "employeeId": "EMP-101",
+        "employeeName": "Preetha Sharma",
+        "rechargeAmount": 349.0,
+        "rechargePlan": "5G Data Plus 28D",
+        "rechargeDate": { "$date": "2024-10-01T00:00:00.000Z" },
+        "planEndDate": { "$date": "2024-11-03T00:00:00.000Z" },
+        "remarks": "Monthly data plan"
+      }
+    ]
+  }
+}

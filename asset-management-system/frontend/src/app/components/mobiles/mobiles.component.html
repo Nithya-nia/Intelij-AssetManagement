@@ -1,0 +1,408 @@
+<div class="mobiles-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Mobile Phone Management</h4>
+      <p class="text-muted small mb-0">Maintain company-issued smartphones, IMEI tracking, and associated SIM capacities</p>
+    </div>
+    <button class="btn btn-primary-custom" (click)="openAddModal()">
+      <i class="bi bi-phone-fill"></i> Add Mobile Phone
+    </button>
+  </div>
+
+  <!-- Success/Error Feedback -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show small" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="card card-custom mb-4 p-3 bg-white">
+    <div class="row g-3">
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search by Mobile ID, Model, IMEI, or Employee..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="applyFilter()"
+          />
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select class="form-select" [(ngModel)]="selectedBrand" (change)="applyFilter()">
+          <option value="ALL">All Brands</option>
+          <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilter()">
+          <option value="ALL">All Status</option>
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Under Repair">Under Repair</option>
+          <option value="Retired">Retired</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <button class="btn btn-outline-secondary w-100" (click)="applyFilter()">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobiles Table -->
+  <div class="card card-custom">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-modern mb-0">
+          <thead>
+            <tr>
+              <th>Mobile ID</th>
+              <th>Device Model</th>
+              <th>IMEI Number</th>
+              <th>SIM Capacity</th>
+              <th>Status</th>
+              <th>Assigned Employee</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mob of mobiles">
+              <td class="fw-semibold text-primary">{{ mob.mobileId }}</td>
+              <td>
+                <div class="fw-semibold text-dark">{{ mob.name }}</div>
+                <div class="small text-muted">{{ mob.brand }}</div>
+              </td>
+              <td><code>{{ mob.imeiNumber }}</code></td>
+              <td>
+                <span class="badge" [ngClass]="{'bg-light text-muted border': mob.activeSimCount===0, 'bg-info-subtle text-info-emphasis border': mob.activeSimCount===1, 'bg-primary-subtle text-primary border': mob.activeSimCount===2}">
+                  <i class="bi bi-sim me-1"></i> {{ mob.activeSimCount }} / 2 SIMs
+                </span>
+              </td>
+              <td>
+                <span *ngIf="mob.status === 'Available'" class="badge badge-status-available">Available</span>
+                <span *ngIf="mob.status === 'Assigned'" class="badge badge-status-assigned">Assigned</span>
+                <span *ngIf="mob.status === 'Under Repair'" class="badge badge-status-repair">Under Repair</span>
+                <span *ngIf="mob.status === 'Retired'" class="badge badge-status-retired">Retired</span>
+              </td>
+              <td>
+                <div *ngIf="mob.assignedEmployeeName">
+                  <div class="fw-semibold text-dark">{{ mob.assignedEmployeeName }}</div>
+                  <div class="small text-muted">ID: {{ mob.assignedEmployeeId }}</div>
+                </div>
+                <div *ngIf="!mob.assignedEmployeeName" class="text-muted small">
+                  — Unassigned —
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <!-- Assign button if available -->
+                  <button *ngIf="mob.status === 'Available'" class="btn btn-primary" (click)="openAssignModal(mob)" title="Assign to Employee">
+                    <i class="bi bi-person-check"></i> Assign
+                  </button>
+                  <!-- Return button if assigned -->
+                  <button *ngIf="mob.status === 'Assigned'" class="btn btn-warning text-dark" (click)="openReturnModal(mob)" title="Return Mobile">
+                    <i class="bi bi-arrow-return-left"></i> Return
+                  </button>
+                  <!-- History -->
+                  <button class="btn btn-outline-secondary ms-1" (click)="viewHistory(mob)" title="View Assignment History">
+                    <i class="bi bi-clock-history"></i>
+                  </button>
+                  <!-- Edit -->
+                  <button class="btn btn-outline-secondary ms-1" (click)="openEditModal(mob)" title="Edit Mobile">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="loading">
+              <td colspan="7" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading mobile phones...
+              </td>
+            </tr>
+            <tr *ngIf="!loading && mobiles.length === 0">
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-phone fs-2 d-block mb-2 text-secondary"></i>
+                No mobile phone records match your search criteria.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Mobile Modal -->
+<div *ngIf="showFormModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showFormModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-phone me-2 text-primary"></i>
+          {{ isEditing ? 'Edit Mobile Device' : 'Register New Mobile Phone' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeFormModal()"></button>
+      </div>
+      <form [formGroup]="mobileForm" (ngSubmit)="saveMobile()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Mobile ID <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. MOB-101"
+                formControlName="mobileId"
+                [class.is-invalid]="mobileForm.get('mobileId')?.touched && mobileForm.get('mobileId')?.invalid"
+              />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Model Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Galaxy S23 / iPhone 15"
+                formControlName="name"
+                [class.is-invalid]="mobileForm.get('name')?.touched && mobileForm.get('name')?.invalid"
+              />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Brand <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="brand" [class.is-invalid]="mobileForm.get('brand')?.touched && mobileForm.get('brand')?.invalid">
+                <option value="">Select Brand</option>
+                <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">IMEI Number (15 Digits Unique) <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. 864201049281001"
+                formControlName="imeiNumber"
+                [class.is-invalid]="mobileForm.get('imeiNumber')?.touched && mobileForm.get('imeiNumber')?.invalid"
+              />
+              <div class="invalid-feedback small">Valid 15-digit numeric IMEI is required.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Purchase Date</label>
+              <input type="date" class="form-control" formControlName="purchaseDate" />
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Warranty Expiry Date</label>
+              <input type="date" class="form-control" formControlName="warrantyExpiryDate" />
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Hardware Status <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="status">
+                <option value="Available">Available</option>
+                <option value="Under Repair">Under Repair</option>
+                <option value="Retired">Retired</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-check-lg"></i> {{ isEditing ? 'Update Mobile' : 'Save Mobile' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Mobile Modal -->
+<div *ngIf="showAssignModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showAssignModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-person-check me-2 text-primary"></i> Assign Mobile to Employee
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAssignModal()"></button>
+      </div>
+      <form [formGroup]="assignForm" (ngSubmit)="submitAssign()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Target Mobile:</strong> {{ selectedMobileForAssign?.name }} ({{ selectedMobileForAssign?.mobileId }})<br>
+            <span class="text-muted">IMEI: {{ selectedMobileForAssign?.imeiNumber }}</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Select Employee <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="employeeId" [class.is-invalid]="assignForm.get('employeeId')?.touched && assignForm.get('employeeId')?.invalid">
+              <option value="">-- Choose Active Employee --</option>
+              <option *ngFor="let emp of employees" [value]="emp.employeeId">
+                {{ emp.name }} ({{ emp.employeeId }}) - {{ emp.department }}
+              </option>
+            </select>
+            <div class="invalid-feedback small">Please select an employee.</div>
+            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+              Rule: One employee can have a maximum of 1 active mobile phone.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Assignment Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="assignedDate" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Remarks</label>
+            <textarea class="form-control" rows="2" placeholder="Assignment purpose or notes..." formControlName="remarks"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeAssignModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">Confirm Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Return Mobile Modal -->
+<div *ngIf="showReturnModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showReturnModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-arrow-return-left me-2 text-warning"></i> Return Mobile to Inventory
+        </h5>
+        <button type="button" class="btn-close" (click)="closeReturnModal()"></button>
+      </div>
+      <form [formGroup]="returnForm" (ngSubmit)="submitReturn()">
+        <div class="modal-body p-4">
+          <!-- CRITICAL BUSINESS RULE WARNING -->
+          <div *ngIf="activeSimWarning" class="alert alert-danger d-flex align-items-start gap-2 p-3 mb-3 small">
+            <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 text-danger"></i>
+            <div>
+              <strong>Action Blocked by Business Rules:</strong><br>
+              {{ activeSimWarning }}
+            </div>
+          </div>
+
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Mobile:</strong> {{ selectedMobileForReturn?.name }} ({{ selectedMobileForReturn?.mobileId }})<br>
+            <strong>Currently with:</strong> {{ selectedMobileForReturn?.assignedEmployeeName }} ({{ selectedMobileForReturn?.assignedEmployeeId }})<br>
+            <strong>Active SIMs Attached:</strong> {{ selectedMobileForReturn?.activeSimCount }} / 2
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="returnedDate" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Physical Condition <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="returnCondition">
+              <option value="Good">Good / Like New</option>
+              <option value="Minor Scratches">Minor Wear & Scratches</option>
+              <option value="Damaged">Damaged / Needs Repair</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Remarks</label>
+            <textarea class="form-control" rows="2" placeholder="Condition details or inspection notes..." formControlName="remarks"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeReturnModal()">Cancel</button>
+          <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold" [disabled]="selectedMobileForReturn && selectedMobileForReturn.activeSimCount > 0">
+            Confirm Return
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Assignment History Modal -->
+<div *ngIf="showHistoryModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showHistoryModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-clock-history me-2 text-primary"></i> Assignment History: {{ historyMobile?.name }} ({{ historyMobile?.mobileId }})
+        </h5>
+        <button type="button" class="btn-close" (click)="closeHistoryModal()"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div *ngIf="loadingHistory" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <div *ngIf="!loadingHistory">
+          <div class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee</th>
+                  <th>Assigned Date</th>
+                  <th>Returned Date</th>
+                  <th>Status</th>
+                  <th>Condition</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of mobileHistory">
+                  <td class="fw-semibold">{{ item.employeeName }} <span class="text-muted small">({{ item.employeeId }})</span></td>
+                  <td>{{ item.assignedDate }}</td>
+                  <td>{{ item.returnedDate || '—' }}</td>
+                  <td>
+                    <span *ngIf="item.status === 'Active'" class="badge badge-status-active">Active</span>
+                    <span *ngIf="item.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                  </td>
+                  <td>{{ item.returnCondition || '—' }}</td>
+                  <td class="small text-muted">{{ item.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="mobileHistory.length === 0">
+                  <td colspan="6" class="text-center py-3 text-muted small">No past assignment records found for this mobile phone.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

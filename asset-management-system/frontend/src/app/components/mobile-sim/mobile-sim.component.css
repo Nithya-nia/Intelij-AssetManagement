@@ -1,0 +1,48 @@
+.mobile-sim-container {
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.nav-pills .nav-link {
+  color: #4b5563;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.nav-pills .nav-link:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.nav-pills .nav-link.active {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.bg-purple-subtle {
+  background-color: #f3e8ff;
+}
+
+.text-purple {
+  color: #7e22ce;
+}
+
+.modal-dialog {
+  max-width: 680px;
+}
+
+.modal-dialog.modal-lg {
+  max-width: 860px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

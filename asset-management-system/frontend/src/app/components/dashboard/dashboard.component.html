@@ -1,0 +1,279 @@
+<div class="dashboard-container">
+  <!-- Title and Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Dashboard Overview</h4>
+      <p class="text-muted small mb-0">Real-time enterprise asset deployment & status tracking</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" (click)="loadStats()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading dashboard...</span>
+    </div>
+    <div class="text-muted small mt-2">Loading asset metrics...</div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+  </div>
+
+  <div *ngIf="!loading && stats">
+    <!-- Summary Cards (8 required metrics - Clickable) -->
+    <div class="row g-3 mb-4">
+      <!-- 1. Total Employees -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/employees']" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Total Employees</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ stats.totalEmployees }}</div>
+            <div class="small text-success mt-1"><i class="bi bi-check-circle"></i> {{ stats.activeEmployees }} Active</div>
+          </div>
+          <div class="stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-people-fill"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Total Laptops -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/laptops']" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Total Laptops</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ stats.totalLaptops }}</div>
+            <div class="small text-muted mt-1">{{ stats.underRepairLaptops + stats.retiredLaptops }} in maintenance</div>
+          </div>
+          <div class="stat-icon bg-info-subtle text-info">
+            <i class="bi bi-laptop"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Assigned Laptops -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/laptops']" [queryParams]="{ status: 'Assigned' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Assigned Laptops</div>
+            <div class="fs-4 fw-bold text-primary mt-1">{{ stats.assignedLaptops }}</div>
+            <div class="small text-muted mt-1">In employee use</div>
+          </div>
+          <div class="stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-person-check-fill"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Available Laptops -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/laptops']" [queryParams]="{ status: 'Available' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Available Laptops</div>
+            <div class="fs-4 fw-bold text-success mt-1">{{ stats.availableLaptops }}</div>
+            <div class="small text-success mt-1">Ready to assign</div>
+          </div>
+          <div class="stat-icon bg-success-subtle text-success">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Total Mobile Phones -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/mobile-sim']" [queryParams]="{ tab: 'mobiles' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Total Mobile Phones</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ stats.totalMobiles }}</div>
+            <div class="small text-primary mt-1">{{ stats.assignedMobiles }} Assigned | {{ stats.availableMobiles }} Available</div>
+          </div>
+          <div class="stat-icon bg-secondary-subtle text-secondary">
+            <i class="bi bi-phone-fill"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Total SIM Cards -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/mobile-sim']" [queryParams]="{ tab: 'sims' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Total SIM Cards</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ stats.totalSims }}</div>
+            <div class="small text-muted mt-1">{{ stats.availableSims }} Available</div>
+          </div>
+          <div class="stat-icon bg-purple-subtle text-purple">
+            <i class="bi bi-sim-fill"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Active SIM Assignments -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/mobile-sim']" [queryParams]="{ tab: 'assignments', status: 'Active' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Active SIM Assignments</div>
+            <div class="fs-4 fw-bold text-indigo mt-1">{{ stats.activeSimAssignments }}</div>
+            <div class="small text-muted mt-1">Paired with employee phones</div>
+          </div>
+          <div class="stat-icon bg-indigo-subtle text-indigo">
+            <i class="bi bi-link-45deg fs-3"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. SIM Recharges Expiring Soon -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-clickable" [routerLink]="['/mobile-sim']" [queryParams]="{ tab: 'recharges', filter: 'expiring' }" role="button" tabindex="0">
+          <div>
+            <div class="text-muted small fw-medium">Recharges Expiring Soon</div>
+            <div class="fs-4 fw-bold text-warning mt-1">{{ stats.expiringSoonSims }}</div>
+            <div class="small text-danger mt-1">{{ stats.expiredSims }} already expired</div>
+          </div>
+          <div class="stat-icon bg-warning-subtle text-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tables Row: Recent Additions, Alerts, Assignments -->
+    <div class="row g-4">
+      <!-- SIM Recharge Alerts -->
+      <div class="col-12 col-lg-6">
+        <div class="card card-custom h-100">
+          <div class="card-custom-header d-flex justify-content-between align-items-center">
+            <span class="text-danger fw-bold"><i class="bi bi-bell-fill me-2"></i> SIM Recharge Alerts</span>
+            <a [routerLink]="['/mobile-sim']" [queryParams]="{ tab: 'recharges', filter: 'expiring' }" class="btn btn-sm btn-link text-decoration-none">Manage Recharges &rarr;</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-modern mb-0">
+                <thead>
+                  <tr>
+                    <th>Provider / Mobile</th>
+                    <th>Assigned To</th>
+                    <th>Expiry Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let alert of stats.simExpiryAlerts">
+                    <td>
+                      <div class="fw-semibold">{{ alert.provider }}</div>
+                      <div class="small text-muted">{{ alert.mobileNumber }}</div>
+                    </td>
+                    <td>{{ alert.employeeName }}</td>
+                    <td>{{ alert.planEndDate }}</td>
+                    <td>
+                      <span *ngIf="alert.expiryStatus === 'Expiring Soon'" class="badge badge-expiry-soon">
+                        {{ alert.remainingDays }} days left
+                      </span>
+                      <span *ngIf="alert.expiryStatus === 'Expires Today'" class="badge badge-expiry-today">
+                        Expires Today
+                      </span>
+                      <span *ngIf="alert.expiryStatus === 'Expired'" class="badge badge-expiry-expired">
+                        Expired ({{ alert.remainingDays }}d)
+                      </span>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!stats.simExpiryAlerts || stats.simExpiryAlerts.length === 0">
+                    <td colspan="4" class="text-center py-4 text-muted small">
+                      <i class="bi bi-check2-circle text-success fs-4 d-block mb-1"></i>
+                      No pending SIM expiry alerts.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Employee Additions -->
+      <div class="col-12 col-lg-6">
+        <div class="card card-custom h-100">
+          <div class="card-custom-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-people me-2 text-primary"></i> Recent Employee Additions</span>
+            <a routerLink="/employees" class="btn btn-sm btn-link text-decoration-none">View All &rarr;</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-modern mb-0">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Joining Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let emp of stats.recentEmployees">
+                    <td class="fw-semibold text-primary">{{ emp.employeeId }}</td>
+                    <td>{{ emp.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ emp.department }}</span></td>
+                    <td class="text-muted">{{ emp.joiningDate }}</td>
+                  </tr>
+                  <tr *ngIf="!stats.recentEmployees || stats.recentEmployees.length === 0">
+                    <td colspan="4" class="text-center py-4 text-muted small">No employees found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Asset Assignments -->
+      <div class="col-12">
+        <div class="card card-custom">
+          <div class="card-custom-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history me-2 text-primary"></i> Recent Asset Assignments</span>
+            <a routerLink="/asset-history" class="btn btn-sm btn-link text-decoration-none">Full History &rarr;</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-modern mb-0">
+                <thead>
+                  <tr>
+                    <th>Asset Type</th>
+                    <th>Asset Details</th>
+                    <th>Identifier / Serial</th>
+                    <th>Assigned To</th>
+                    <th>Assigned Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of stats.recentAssignments">
+                    <td>
+                      <span *ngIf="item.assetType === 'Laptop'" class="badge bg-primary-subtle text-primary border"><i class="bi bi-laptop me-1"></i> Laptop</span>
+                      <span *ngIf="item.assetType === 'Mobile'" class="badge bg-info-subtle text-info-emphasis border"><i class="bi bi-phone me-1"></i> Mobile</span>
+                      <span *ngIf="item.assetType === 'SIM'" class="badge bg-purple-subtle text-purple border"><i class="bi bi-sim me-1"></i> SIM</span>
+                    </td>
+                    <td class="fw-semibold">{{ item.assetName }}</td>
+                    <td><code>{{ item.assetIdentifier }}</code></td>
+                    <td>{{ item.employeeName }} <span class="text-muted small">({{ item.employeeId }})</span></td>
+                    <td>{{ item.assignedDate }}</td>
+                    <td>
+                      <span *ngIf="item.assignmentStatus === 'Active'" class="badge badge-status-active">Active</span>
+                      <span *ngIf="item.assignmentStatus === 'Returned'" class="badge badge-status-retired">Returned</span>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!stats.recentAssignments || stats.recentAssignments.length === 0">
+                    <td colspan="6" class="text-center py-4 text-muted small">No recent assignment records.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

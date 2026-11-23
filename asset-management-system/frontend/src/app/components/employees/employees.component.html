@@ -1,0 +1,362 @@
+<div class="employees-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Employee Management</h4>
+      <p class="text-muted small mb-0">View, register, and manage corporate employee profiles and allocated assets</p>
+    </div>
+    <button class="btn btn-primary-custom" (click)="openAddModal()">
+      <i class="bi bi-person-plus-fill"></i> Add New Employee
+    </button>
+  </div>
+
+  <!-- Success/Error Feedback -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show small" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="card card-custom mb-4 p-3 bg-white">
+    <div class="row g-3">
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search by ID, name, designation, or email..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="applyFilter()"
+          />
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select class="form-select" [(ngModel)]="selectedDepartment" (change)="applyFilter()">
+          <option value="ALL">All Departments</option>
+          <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilter()">
+          <option value="ALL">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button class="btn btn-outline-secondary w-100" (click)="applyFilter()">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Table -->
+  <div class="card card-custom">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-modern mb-0">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Full Name</th>
+              <th>Department</th>
+              <th>Designation</th>
+              <th>Joining Date</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of employees">
+              <td class="fw-semibold text-primary">{{ emp.employeeId }}</td>
+              <td class="fw-semibold text-dark">{{ emp.name }}</td>
+              <td><span class="badge bg-light text-dark border">{{ emp.department }}</span></td>
+              <td>{{ emp.designation }}</td>
+              <td class="text-muted">{{ emp.joiningDate }}</td>
+              <td>
+                <span *ngIf="emp.status === 'Active'" class="badge badge-status-active">Active</span>
+                <span *ngIf="emp.status === 'Inactive'" class="badge badge-status-inactive">Inactive</span>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-info" (click)="viewDetails(emp)" title="View Assets & History">
+                    <i class="bi bi-eye"></i> Assets
+                  </button>
+                  <button class="btn btn-outline-secondary ms-1" (click)="openEditModal(emp)" title="Edit Employee">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-outline-danger ms-1" (click)="deleteEmployee(emp)" title="Delete Employee Profile">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="loading">
+              <td colspan="7" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading employees...
+              </td>
+            </tr>
+            <tr *ngIf="!loading && employees.length === 0">
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+                No employee records match your search criteria.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Employee Modal -->
+<div *ngIf="showFormModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showFormModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-person me-2 text-primary"></i>
+          {{ isEditing ? 'Edit Employee Profile' : 'Add New Employee' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeFormModal()"></button>
+      </div>
+      <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Employee ID <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. EMP-105"
+                formControlName="employeeId"
+                [class.is-invalid]="employeeForm.get('employeeId')?.touched && employeeForm.get('employeeId')?.invalid"
+              />
+              <div class="invalid-feedback small">Unique Employee ID is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Full Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. John Doe"
+                formControlName="name"
+                [class.is-invalid]="employeeForm.get('name')?.touched && employeeForm.get('name')?.invalid"
+              />
+              <div class="invalid-feedback small">Full name is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Department <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="department" [class.is-invalid]="employeeForm.get('department')?.touched && employeeForm.get('department')?.invalid">
+                <option value="">Select Department</option>
+                <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+              </select>
+              <div class="invalid-feedback small">Department is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Designation <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Software Engineer"
+                formControlName="designation"
+                [class.is-invalid]="employeeForm.get('designation')?.touched && employeeForm.get('designation')?.invalid"
+              />
+              <div class="invalid-feedback small">Designation is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Joining Date <span class="text-danger">*</span></label>
+              <input
+                type="date"
+                class="form-control"
+                formControlName="joiningDate"
+                [class.is-invalid]="employeeForm.get('joiningDate')?.touched && employeeForm.get('joiningDate')?.invalid"
+              />
+              <div class="invalid-feedback small">Joining date is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                Note: Inactive employees cannot receive new assets.
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Email (Optional)</label>
+              <input type="email" class="form-control" placeholder="employee@company.com" formControlName="email" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Phone Number (Optional)</label>
+              <input type="text" class="form-control" placeholder="e.g. 9876543210" formControlName="phone" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-check-lg"></i> {{ isEditing ? 'Update Employee' : 'Save Employee' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Employee Details & Assets Modal -->
+<div *ngIf="showDetailsModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showDetailsModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-person-badge me-2 text-primary"></i>
+          Employee Assets & Allocation Details
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailsModal()"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div *ngIf="loadingAssets" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="small text-muted mt-2">Loading asset profile...</div>
+        </div>
+
+        <div *ngIf="!loadingAssets && selectedEmployeeAssets">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">{{ selectedEmployeeAssets.employeeName }}</h5>
+              <span class="text-muted small">Employee ID: <code>{{ selectedEmployeeAssets.employeeId }}</code></span>
+            </div>
+          </div>
+
+          <!-- Currently Allocated Assets -->
+          <div class="mb-4">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-box-seam me-1 text-primary"></i> Currently Assigned Assets</h6>
+            <div class="row g-3">
+              <!-- Laptop -->
+              <div class="col-12 col-md-4">
+                <div class="card p-3 h-100 bg-light border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-laptop text-primary fs-4"></i>
+                    <span class="fw-bold small">Assigned Laptop</span>
+                  </div>
+                  <div *ngIf="selectedEmployeeAssets.assignedLaptop">
+                    <div class="fw-semibold text-dark">{{ selectedEmployeeAssets.assignedLaptop.name }}</div>
+                    <div class="small text-muted">ID: {{ selectedEmployeeAssets.assignedLaptop.laptopId }}</div>
+                    <div class="small text-muted">SN: <code>{{ selectedEmployeeAssets.assignedLaptop.serialNumber }}</code></div>
+                    <div class="small text-success mt-1"><i class="bi bi-calendar-check"></i> Since {{ selectedEmployeeAssets.assignedLaptop.assignedDate }}</div>
+                  </div>
+                  <div *ngIf="!selectedEmployeeAssets.assignedLaptop" class="text-muted small py-2">
+                    No laptop currently assigned.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mobile -->
+              <div class="col-12 col-md-4">
+                <div class="card p-3 h-100 bg-light border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-phone text-info fs-4"></i>
+                    <span class="fw-bold small">Assigned Mobile</span>
+                  </div>
+                  <div *ngIf="selectedEmployeeAssets.assignedMobile">
+                    <div class="fw-semibold text-dark">{{ selectedEmployeeAssets.assignedMobile.name }}</div>
+                    <div class="small text-muted">ID: {{ selectedEmployeeAssets.assignedMobile.mobileId }}</div>
+                    <div class="small text-muted">IMEI: <code>{{ selectedEmployeeAssets.assignedMobile.imeiNumber }}</code></div>
+                    <div class="small text-info mt-1"><i class="bi bi-sim"></i> Active SIMs: {{ selectedEmployeeAssets.assignedMobile.activeSimCount }}/2</div>
+                  </div>
+                  <div *ngIf="!selectedEmployeeAssets.assignedMobile" class="text-muted small py-2">
+                    No mobile phone currently assigned.
+                  </div>
+                </div>
+              </div>
+
+              <!-- SIM Cards -->
+              <div class="col-12 col-md-4">
+                <div class="card p-3 h-100 bg-light border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-sim text-purple fs-4"></i>
+                    <span class="fw-bold small">Assigned SIMs ({{ selectedEmployeeAssets.assignedSims?.length || 0 }}/2)</span>
+                  </div>
+                  <div *ngIf="selectedEmployeeAssets.assignedSims && selectedEmployeeAssets.assignedSims.length > 0">
+                    <div *ngFor="let sim of selectedEmployeeAssets.assignedSims" class="border-bottom pb-1 mb-1">
+                      <div class="fw-semibold text-dark">{{ sim.provider }} - {{ sim.mobileNumber }}</div>
+                      <div class="small text-muted">ID: {{ sim.simId }} ({{ sim.simType }})</div>
+                    </div>
+                  </div>
+                  <div *ngIf="!selectedEmployeeAssets.assignedSims || selectedEmployeeAssets.assignedSims.length === 0" class="text-muted small py-2">
+                    No SIM cards assigned.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignment History for this Employee -->
+          <div>
+            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-clock-history me-1 text-primary"></i> Assignment & Return History</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-modern table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Asset Type</th>
+                    <th>Asset Details</th>
+                    <th>Identifier</th>
+                    <th>Assigned Date</th>
+                    <th>Returned Date</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of selectedEmployeeAssets.history">
+                    <td>
+                      <span class="badge" [ngClass]="{'bg-primary-subtle text-primary': item.assetType==='Laptop', 'bg-info-subtle text-info': item.assetType==='Mobile', 'bg-purple-subtle text-purple': item.assetType==='SIM'}">
+                        {{ item.assetType }}
+                      </span>
+                    </td>
+                    <td class="fw-semibold">{{ item.assetName }}</td>
+                    <td><code>{{ item.assetIdentifier }}</code></td>
+                    <td>{{ item.assignedDate }}</td>
+                    <td>{{ item.returnedDate || '—' }}</td>
+                    <td>
+                      <span *ngIf="item.assignmentStatus === 'Active'" class="badge badge-status-active">Active</span>
+                      <span *ngIf="item.assignmentStatus === 'Returned'" class="badge badge-status-retired">Returned</span>
+                    </td>
+                    <td class="small text-muted">{{ item.remarks || '—' }}</td>
+                  </tr>
+                  <tr *ngIf="!selectedEmployeeAssets.history || selectedEmployeeAssets.history.length === 0">
+                    <td colspan="7" class="text-center py-3 text-muted small">No past assignment history for this employee.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

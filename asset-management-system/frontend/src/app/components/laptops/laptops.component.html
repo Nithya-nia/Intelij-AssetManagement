@@ -1,0 +1,524 @@
+<div class="laptops-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Laptop Asset Management</h4>
+      <p class="text-muted small mb-0">Track company laptop hardware inventory, assignments, and historical lifecycles</p>
+    </div>
+    <button class="btn btn-primary-custom" (click)="openAddModal()">
+      <i class="bi bi-plus-circle-fill"></i> Add Laptop Asset
+    </button>
+  </div>
+
+  <!-- Success/Error Feedback -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show small" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="card card-custom mb-4 p-3 bg-white">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search by ID, Model, Serial, or Employee..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="applyFilter()"
+          />
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-folder"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Filter by Project Name..."
+            [(ngModel)]="projectFilter"
+            (keyup.enter)="applyFilter()"
+          />
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" [(ngModel)]="selectedBrand" (change)="applyFilter()">
+          <option value="ALL">All Brands</option>
+          <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilter()">
+          <option value="ALL">All Status</option>
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Under Repair">Under Repair</option>
+          <option value="Retired">Retired</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-1">
+        <button class="btn btn-outline-secondary w-100" (click)="applyFilter()" title="Apply Filters">
+          <i class="bi bi-funnel"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laptops Table -->
+  <div class="card card-custom">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-modern mb-0">
+          <thead>
+            <tr>
+              <th>Laptop ID</th>
+              <th>Model & Brand</th>
+              <th>Project Name</th>
+              <th>Serial Number</th>
+              <th>Specs (RAM / Storage)</th>
+              <th>Status</th>
+              <th>Current Assignment</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let lpt of laptops">
+              <td class="fw-semibold text-primary">{{ lpt.laptopId }}</td>
+              <td>
+                <div class="fw-semibold text-dark">{{ lpt.name }}</div>
+                <div class="small text-muted">{{ lpt.brand }}</div>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border fw-medium"><i class="bi bi-folder-fill text-warning me-1"></i>{{ lpt.projectName || '—' }}</span>
+              </td>
+              <td><code>{{ lpt.serialNumber }}</code></td>
+              <td>
+                <div class="small">{{ lpt.processor || 'Standard CPU' }}</div>
+                <div class="small text-muted">{{ lpt.ram || '8GB' }} | {{ lpt.storage || '256GB SSD' }}</div>
+              </td>
+              <td>
+                <span *ngIf="lpt.status === 'Available'" class="badge badge-status-available">Available</span>
+                <span *ngIf="lpt.status === 'Assigned'" class="badge badge-status-assigned">Assigned</span>
+                <span *ngIf="lpt.status === 'Under Repair'" class="badge badge-status-repair">Under Repair</span>
+                <span *ngIf="lpt.status === 'Retired'" class="badge badge-status-retired">Retired</span>
+              </td>
+              <td>
+                <div *ngIf="lpt.assignedEmployeeName">
+                  <div class="fw-semibold text-dark">{{ lpt.assignedEmployeeName }}</div>
+                  <div class="small text-muted">ID: {{ lpt.assignedEmployeeId }}</div>
+                </div>
+                <div *ngIf="!lpt.assignedEmployeeName" class="text-muted small">
+                  — Unassigned —
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <!-- Assign button if available -->
+                  <button *ngIf="lpt.status === 'Available'" class="btn btn-primary" (click)="openAssignModal(lpt)" title="Assign to Employee">
+                    <i class="bi bi-person-check"></i> Assign
+                  </button>
+                  <!-- Return button if assigned -->
+                  <button *ngIf="lpt.status === 'Assigned'" class="btn btn-warning text-dark" (click)="openReturnModal(lpt)" title="Return Laptop">
+                    <i class="bi bi-arrow-return-left"></i> Return
+                  </button>
+                  <!-- History -->
+                  <button class="btn btn-outline-secondary ms-1" (click)="viewHistory(lpt)" title="View Assignment History">
+                    <i class="bi bi-clock-history"></i>
+                  </button>
+                  <!-- Edit -->
+                  <button class="btn btn-outline-secondary ms-1" (click)="openEditModal(lpt)" title="Edit Laptop">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <!-- Delete -->
+                  <button
+                    class="btn btn-outline-danger ms-1"
+                    (click)="deleteLaptop(lpt)"
+                    [disabled]="lpt.status === 'Assigned'"
+                    title="{{ lpt.status === 'Assigned' ? 'Cannot delete assigned laptop - return first' : 'Delete Laptop Asset' }}"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="loading">
+              <td colspan="7" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading laptop assets...
+              </td>
+            </tr>
+            <tr *ngIf="!loading && laptops.length === 0">
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-laptop fs-2 d-block mb-2 text-secondary"></i>
+                No laptop assets match your query.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Laptop Modal -->
+<div *ngIf="showFormModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showFormModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-laptop me-2 text-primary"></i>
+          {{ isEditing ? 'Edit Laptop Asset' : 'Register New Laptop Asset' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeFormModal()"></button>
+      </div>
+      <form [formGroup]="laptopForm" (ngSubmit)="saveLaptop()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Laptop ID (Auto-Generated) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-tag-fill text-primary"></i></span>
+                <input
+                  type="text"
+                  class="form-control bg-light font-monospace fw-bold"
+                  placeholder="Generating LAP-xxxx..."
+                  formControlName="laptopId"
+                  readonly
+                />
+              </div>
+              <small class="text-muted"><i class="bi bi-shield-check text-success"></i> Auto-generated unique identifier</small>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Laptop Model / Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. ThinkPad T14 Gen 4"
+                formControlName="name"
+                [class.is-invalid]="laptopForm.get('name')?.touched && laptopForm.get('name')?.invalid"
+              />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Brand <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="brand" [class.is-invalid]="laptopForm.get('brand')?.touched && laptopForm.get('brand')?.invalid">
+                <option value="">Select Brand</option>
+                <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Project Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Project Titan, Core Banking"
+                formControlName="projectName"
+                [class.is-invalid]="laptopForm.get('projectName')?.touched && laptopForm.get('projectName')?.invalid"
+              />
+              <div *ngIf="laptopForm.get('projectName')?.touched && laptopForm.get('projectName')?.invalid" class="invalid-feedback">
+                Project Name is required.
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Serial Number (Unique) <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. SN-LNV-2024-998"
+                formControlName="serialNumber"
+                [class.is-invalid]="laptopForm.get('serialNumber')?.touched && laptopForm.get('serialNumber')?.invalid"
+              />
+            </div>
+
+            <!-- Processor Dropdown + Custom Field -->
+            <div class="col-12 col-md-6">
+              <label class="form-label">Processor <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                formControlName="processorSelect"
+                (change)="onProcessorChange()"
+                [class.is-invalid]="laptopForm.get('processorSelect')?.touched && laptopForm.get('processorSelect')?.invalid"
+              >
+                <option value="">Select Processor</option>
+                <option *ngFor="let p of processors" [value]="p">{{ p }}</option>
+              </select>
+              <div *ngIf="laptopForm.get('processorSelect')?.value === 'Other'" class="mt-2">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Enter custom processor name..."
+                  formControlName="customProcessor"
+                  [class.is-invalid]="laptopForm.get('customProcessor')?.touched && laptopForm.get('customProcessor')?.invalid"
+                />
+                <div class="invalid-feedback small">Please specify custom processor.</div>
+              </div>
+            </div>
+
+            <!-- RAM Dropdown + Custom Field -->
+            <div class="col-12 col-md-6">
+              <label class="form-label">RAM <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                formControlName="ramSelect"
+                (change)="onRamChange()"
+                [class.is-invalid]="laptopForm.get('ramSelect')?.touched && laptopForm.get('ramSelect')?.invalid"
+              >
+                <option value="">Select RAM</option>
+                <option *ngFor="let r of ramOptions" [value]="r">{{ r }}</option>
+              </select>
+              <div *ngIf="laptopForm.get('ramSelect')?.value === 'Other'" class="mt-2">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Enter custom RAM specification..."
+                  formControlName="customRam"
+                  [class.is-invalid]="laptopForm.get('customRam')?.touched && laptopForm.get('customRam')?.invalid"
+                />
+                <div class="invalid-feedback small">Please specify custom RAM details.</div>
+              </div>
+            </div>
+
+            <!-- Storage Dropdown + Custom Field -->
+            <div class="col-12 col-md-6">
+              <label class="form-label">Storage <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                formControlName="storageSelect"
+                (change)="onStorageChange()"
+                [class.is-invalid]="laptopForm.get('storageSelect')?.touched && laptopForm.get('storageSelect')?.invalid"
+              >
+                <option value="">Select Storage</option>
+                <option *ngFor="let s of storageOptions" [value]="s">{{ s }}</option>
+              </select>
+              <div *ngIf="laptopForm.get('storageSelect')?.value === 'Other'" class="mt-2">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Enter custom storage specification..."
+                  formControlName="customStorage"
+                  [class.is-invalid]="laptopForm.get('customStorage')?.touched && laptopForm.get('customStorage')?.invalid"
+                />
+                <div class="invalid-feedback small">Please specify custom storage details.</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Purchase Date</label>
+              <input type="date" class="form-control" formControlName="purchaseDate" />
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Warranty Expiry Date</label>
+              <input type="date" class="form-control" formControlName="warrantyExpiryDate" />
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Hardware Status <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="status">
+                <option value="Available">Available</option>
+                <option value="Under Repair">Under Repair</option>
+                <option value="Retired">Retired</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Configuration Details</label>
+              <input type="text" class="form-control" placeholder="e.g. Backlit keyboard, Touchscreen display, 65W USB-C Adapter" formControlName="configuration" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-check-lg"></i> {{ isEditing ? 'Update Laptop' : 'Save Laptop' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Laptop Modal -->
+<div *ngIf="showAssignModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showAssignModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-person-check me-2 text-primary"></i> Assign Laptop to Employee
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAssignModal()"></button>
+      </div>
+      <form [formGroup]="assignForm" (ngSubmit)="submitAssign()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Target Laptop:</strong> {{ selectedLaptopForAssign?.name }} ({{ selectedLaptopForAssign?.laptopId }})<br>
+            <span class="text-muted">Serial: {{ selectedLaptopForAssign?.serialNumber }}</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Select Employee <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="employeeId" [class.is-invalid]="assignForm.get('employeeId')?.touched && assignForm.get('employeeId')?.invalid">
+              <option value="">-- Choose Active Employee Without Laptop --</option>
+              <option *ngFor="let emp of eligibleEmployeesForAssign" [value]="emp.employeeId">
+                {{ emp.name }} ({{ emp.employeeId }}) - {{ emp.department }}
+              </option>
+            </select>
+            <div class="invalid-feedback small">Please select an employee.</div>
+            <div *ngIf="eligibleEmployeesForAssign.length === 0" class="alert alert-warning small mt-2 py-2 mb-0">
+              <i class="bi bi-exclamation-circle me-1"></i> All active employees currently have a laptop assigned. (Max 1 laptop per employee rule).
+            </div>
+            <div *ngIf="eligibleEmployeesForAssign.length > 0" class="small text-muted mt-1" style="font-size: 0.75rem;">
+              Showing {{ eligibleEmployeesForAssign.length }} active employee(s) without an assigned laptop.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Assignment Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="assignedDate" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Remarks</label>
+            <textarea class="form-control" rows="2" placeholder="Assignment purpose or notes..." formControlName="remarks"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeAssignModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">Confirm Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Return Laptop Modal -->
+<div *ngIf="showReturnModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showReturnModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-arrow-return-left me-2 text-warning"></i> Return Laptop to Inventory
+        </h5>
+        <button type="button" class="btn-close" (click)="closeReturnModal()"></button>
+      </div>
+      <form [formGroup]="returnForm" (ngSubmit)="submitReturn()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="alert alert-light border small mb-3">
+            <strong>Laptop:</strong> {{ selectedLaptopForReturn?.name }} ({{ selectedLaptopForReturn?.laptopId }})<br>
+            <strong>Currently with:</strong> {{ selectedLaptopForReturn?.assignedEmployeeName }} ({{ selectedLaptopForReturn?.assignedEmployeeId }})
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="returnedDate" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Hardware Condition <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="returnCondition">
+              <option value="Good">Good / Like New</option>
+              <option value="Minor Scratches">Minor Wear & Scratches</option>
+              <option value="Damaged">Damaged / Requires Repair</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Remarks</label>
+            <textarea class="form-control" rows="2" placeholder="Condition details or inspection notes..." formControlName="remarks"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeReturnModal()">Cancel</button>
+          <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold">Confirm Return</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Laptop Assignment History Modal -->
+<div *ngIf="showHistoryModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showHistoryModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-clock-history me-2 text-primary"></i> Assignment History: {{ historyLaptop?.name }} ({{ historyLaptop?.laptopId }})
+        </h5>
+        <button type="button" class="btn-close" (click)="closeHistoryModal()"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="p-3 mb-3 bg-light rounded border d-flex flex-wrap gap-3 align-items-center justify-content-between small">
+          <div><span class="text-muted">Project:</span> <strong class="ms-1 text-dark">{{ historyLaptop?.projectName || '—' }}</strong></div>
+          <div><span class="text-muted">Serial:</span> <code class="ms-1">{{ historyLaptop?.serialNumber }}</code></div>
+          <div><span class="text-muted">Brand & Specs:</span> <span class="ms-1 text-dark">{{ historyLaptop?.brand }} | {{ historyLaptop?.ram }} | {{ historyLaptop?.storage }}</span></div>
+          <div><span class="text-muted">Status:</span> <strong class="ms-1 text-primary">{{ historyLaptop?.status }}</strong></div>
+        </div>
+
+        <div *ngIf="loadingHistory" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <div *ngIf="!loadingHistory">
+          <div class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee</th>
+                  <th>Assigned Date</th>
+                  <th>Returned Date</th>
+                  <th>Status</th>
+                  <th>Condition</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of laptopHistory">
+                  <td class="fw-semibold">{{ item.employeeName }} <span class="text-muted small">({{ item.employeeId }})</span></td>
+                  <td>{{ item.assignedDate }}</td>
+                  <td>{{ item.returnedDate || '—' }}</td>
+                  <td>
+                    <span *ngIf="item.status === 'Active'" class="badge badge-status-active">Active</span>
+                    <span *ngIf="item.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                  </td>
+                  <td>{{ item.returnCondition || '—' }}</td>
+                  <td class="small text-muted">{{ item.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="laptopHistory.length === 0">
+                  <td colspan="6" class="text-center py-3 text-muted small">No past assignment records found for this laptop.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1704 @@
+<div class="mobile-sim-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">Mobile & SIM Management</h4>
+      <p class="text-muted small mb-0">Unified management of corporate mobile devices, SIM cards, telecom pairing, and recharge lifecycles</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button *ngIf="activeTab === 'mobiles'" class="btn btn-primary-custom" (click)="openAddMobileModal()">
+        <i class="bi bi-plus-circle-fill me-1"></i> Add Mobile Phone
+      </button>
+      <button *ngIf="activeTab === 'sims'" class="btn btn-primary-custom" (click)="openAddSimModal()">
+        <i class="bi bi-plus-circle-fill me-1"></i> Add SIM Card
+      </button>
+      <button *ngIf="activeTab === 'mapping'" class="btn btn-primary-custom" (click)="openMappingModal()">
+        <i class="bi bi-cpu-fill me-1"></i> Map SIM to Mobile
+      </button>
+      <button *ngIf="activeTab === 'assignments'" class="btn btn-primary-custom" (click)="openSimAssignModal()">
+        <i class="bi bi-link-45deg fs-5 me-1"></i> Issue SIM to Device
+      </button>
+      <button *ngIf="activeTab === 'recharges'" class="btn btn-primary-custom" (click)="openAddRechargeModal()">
+        <i class="bi bi-wallet2 me-1"></i> Record New Recharge
+      </button>
+    </div>
+  </div>
+
+  <!-- Success/Error Feedback -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show small" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Unified Navigation Tabs (5 Distinct Tabs) -->
+  <div class="card card-custom mb-4 bg-white border-0 shadow-sm">
+    <div class="card-body p-2">
+      <ul class="nav nav-pills nav-fill">
+        <li class="nav-item">
+          <button
+            class="nav-link fw-semibold"
+            [class.active]="activeTab === 'mobiles'"
+            (click)="setTab('mobiles')"
+          >
+            <i class="bi bi-phone me-2"></i> Mobile Phones
+            <span class="badge rounded-pill ms-2" [class.bg-white]="activeTab === 'mobiles'" [class.text-primary]="activeTab === 'mobiles'" [class.bg-light]="activeTab !== 'mobiles'" [class.text-dark]="activeTab !== 'mobiles'">
+              {{ mobiles.length }}
+            </span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link fw-semibold"
+            [class.active]="activeTab === 'sims'"
+            (click)="setTab('sims')"
+          >
+            <i class="bi bi-sim me-2"></i> SIM Cards
+            <span class="badge rounded-pill ms-2" [class.bg-white]="activeTab === 'sims'" [class.text-primary]="activeTab === 'sims'" [class.bg-light]="activeTab !== 'sims'" [class.text-dark]="activeTab !== 'sims'">
+              {{ sims.length }}
+            </span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link fw-semibold"
+            [class.active]="activeTab === 'mapping'"
+            (click)="setTab('mapping')"
+          >
+            <i class="bi bi-cpu me-2"></i> SIM Mapping
+            <span class="badge rounded-pill ms-2" [class.bg-white]="activeTab === 'mapping'" [class.text-primary]="activeTab === 'mapping'" [class.bg-light]="activeTab !== 'mapping'" [class.text-dark]="activeTab !== 'mapping'">
+              {{ mappedMobilesCount }}/{{ totalMobilesCount }}
+            </span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link fw-semibold"
+            [class.active]="activeTab === 'assignments'"
+            (click)="setTab('assignments')"
+          >
+            <i class="bi bi-arrow-left-right me-2"></i> SIM Assignments
+            <span class="badge rounded-pill ms-2" [class.bg-white]="activeTab === 'assignments'" [class.text-primary]="activeTab === 'assignments'" [class.bg-light]="activeTab !== 'assignments'" [class.text-dark]="activeTab !== 'assignments'">
+              {{ assignments.length }}
+            </span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link fw-semibold"
+            [class.active]="activeTab === 'recharges'"
+            (click)="setTab('recharges')"
+          >
+            <i class="bi bi-wallet2 me-2"></i> Recharge History
+            <span *ngIf="notifications.length > 0" class="badge rounded-pill bg-danger ms-2" title="{{ notifications.length }} SIMs expiring soon or expired">
+              {{ notifications.length }}
+            </span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= TAB 1: MOBILE PHONES ================= -->
+  <div *ngIf="activeTab === 'mobiles'">
+    <!-- Filter Toolbar -->
+    <div class="card card-custom mb-4 p-3 bg-white">
+      <div class="row g-3">
+        <div class="col-12 col-md-3">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search ID, Model, IMEI..."
+              [(ngModel)]="mobileSearch"
+              (keyup.enter)="applyMobileFilter()"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-folder"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Project..."
+              [(ngModel)]="mobileProjectFilter"
+              (keyup.enter)="applyMobileFilter()"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <select class="form-select" [(ngModel)]="mobileBrandFilter" (change)="applyMobileFilter()">
+            <option value="ALL">All Brands</option>
+            <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select class="form-select" [(ngModel)]="mobileSlotFilter" (change)="applyMobileFilter()">
+            <option value="ALL">All Slot Configs</option>
+            <option *ngFor="let s of slotConfigs" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select class="form-select" [(ngModel)]="mobileStatusFilter" (change)="applyMobileFilter()">
+            <option value="ALL">All Status</option>
+            <option value="Available">Available</option>
+            <option value="Assigned">Assigned</option>
+            <option value="Under Repair">Under Repair</option>
+            <option value="Retired">Retired</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-1">
+          <button class="btn btn-outline-secondary w-100" (click)="applyMobileFilter()" title="Filter">
+            <i class="bi bi-funnel"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobiles Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-modern mb-0">
+            <thead>
+              <tr>
+                <th>Mobile ID</th>
+                <th>Brand & Model</th>
+                <th>Project Name</th>
+                <th>IMEI Number</th>
+                <th>SIM Slot Config</th>
+                <th>Status</th>
+                <th>Assignment & Mapped SIMs</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mob of mobiles">
+                <td class="fw-semibold text-primary">{{ mob.mobileId }}</td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ mob.name }}</div>
+                  <div class="small text-muted">{{ mob.brand }} <span *ngIf="mob.model">({{ mob.model }})</span></div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border fw-medium"><i class="bi bi-folder-fill text-warning me-1"></i>{{ mob.projectName || '—' }}</span>
+                </td>
+                <td><code>{{ mob.imeiNumber }}</code></td>
+                <td>
+                  <span *ngIf="mob.simSlotConfig === 'Single SIM'" class="badge bg-secondary-subtle text-secondary border">Single SIM (1 Slot)</span>
+                  <span *ngIf="mob.simSlotConfig === 'Dual SIM'" class="badge bg-primary-subtle text-primary border">Dual SIM (2 Slots)</span>
+                </td>
+                <td>
+                  <span *ngIf="mob.status === 'Available'" class="badge badge-status-available">Available</span>
+                  <span *ngIf="mob.status === 'Assigned'" class="badge badge-status-assigned">Assigned</span>
+                  <span *ngIf="mob.status === 'Under Repair'" class="badge badge-status-repair">Under Repair</span>
+                  <span *ngIf="mob.status === 'Retired'" class="badge badge-status-retired">Retired</span>
+                </td>
+                <td>
+                  <div *ngIf="mob.assignedEmployeeName">
+                    <div class="fw-semibold text-dark mb-1">{{ mob.assignedEmployeeName }}</div>
+                    <!-- SIM Hardware Tray Slots -->
+                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                      <!-- Slot 1 -->
+                      <span *ngIf="mob.slot1MobileNumber" class="badge bg-success-subtle text-success-emphasis border" title="Slot 1: {{ mob.slot1MobileNumber }} ({{ mob.slot1Provider }})">
+                        <i class="bi bi-sim-fill me-1 text-success"></i>S1: {{ mob.slot1MobileNumber }}
+                      </span>
+                      <span *ngIf="!mob.slot1MobileNumber && mob.status === 'Assigned'" class="badge bg-light text-primary border border-dashed" role="button" (click)="openSimAssignModal(mob, 1)" title="Click to map SIM to Slot 1">
+                        <i class="bi bi-plus me-1"></i>S1: Free
+                      </span>
+
+                      <!-- Slot 2 for Dual SIM / Hybrid SIM -->
+                      <ng-container *ngIf="mob.simSlotConfig === 'Dual SIM' || mob.simSlotConfig === 'Hybrid SIM'">
+                        <span *ngIf="mob.slot2MobileNumber" class="badge bg-info-subtle text-info-emphasis border" title="Slot 2: {{ mob.slot2MobileNumber }} ({{ mob.slot2Provider }})">
+                          <i class="bi bi-sim-fill me-1 text-info"></i>S2: {{ mob.slot2MobileNumber }}
+                        </span>
+                        <span *ngIf="!mob.slot2MobileNumber && mob.status === 'Assigned'" class="badge bg-light text-primary border border-dashed" role="button" (click)="openSimAssignModal(mob, 2)" title="Click to map SIM to Slot 2">
+                          <i class="bi bi-plus me-1"></i>S2: Free
+                        </span>
+                      </ng-container>
+
+                      <!-- Slot 2 N/A for Single SIM or eSIM -->
+                      <span *ngIf="mob.simSlotConfig === 'Single SIM'" class="badge bg-light text-muted border" title="Single SIM device specification">
+                        S2: N/A
+                      </span>
+                    </div>
+                  </div>
+                  <div *ngIf="!mob.assignedEmployeeName" class="text-muted small">
+                    — Unassigned —
+                  </div>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button *ngIf="mob.status === 'Available'" class="btn btn-primary" (click)="openMobileAssignModal(mob)" title="Assign to Employee">
+                      <i class="bi bi-person-check"></i> Assign
+                    </button>
+                    <button *ngIf="mob.status === 'Assigned'" class="btn btn-warning text-dark" (click)="openMobileReturnModal(mob)" title="Return Mobile">
+                      <i class="bi bi-arrow-return-left"></i> Return
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="openEditMobileModal(mob)" title="Edit Mobile Asset">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="viewMobileHistory(mob)" title="View Lifecycle History">
+                      <i class="bi bi-clock-history"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="mobiles.length === 0">
+                <td colspan="9" class="text-center py-5 text-muted">
+                  <i class="bi bi-phone fs-2 d-block mb-2 text-secondary"></i>
+                  No mobile devices matching the selected criteria.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 2: SIM CARDS ================= -->
+  <div *ngIf="activeTab === 'sims'">
+    <!-- Filter Toolbar -->
+    <div class="card card-custom mb-4 p-3 bg-white">
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search SIM ID, Mobile #, Serial..."
+              [(ngModel)]="simSearch"
+              (keyup.enter)="applySimFilter()"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <select class="form-select" [(ngModel)]="simProviderFilter" (change)="applySimFilter()">
+            <option value="ALL">All Providers</option>
+            <option *ngFor="let p of providers" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select class="form-select" [(ngModel)]="simTypeFilter" (change)="applySimFilter()">
+            <option value="ALL">All Types</option>
+            <option value="Physical SIM">Physical SIM</option>
+            <option value="eSIM">eSIM</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select class="form-select" [(ngModel)]="simStatusFilter" (change)="applySimFilter()">
+            <option value="ALL">All Status</option>
+            <option value="Available">Available</option>
+            <option value="Assigned">Assigned</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-1">
+          <button class="btn btn-outline-secondary w-100" (click)="applySimFilter()" title="Filter">
+            <i class="bi bi-funnel"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIM Cards Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-modern mb-0">
+            <thead>
+              <tr>
+                <th>SIM ID</th>
+                <th>Mobile Number</th>
+                <th>Provider</th>
+                <th>Serial Number</th>
+                <th>SIM Type</th>
+                <th>Mapped Mobile ID</th>
+                <th>Assigned Employee</th>
+                <th>Status</th>
+                <th>Latest Recharge</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sim of sims">
+                <td class="fw-semibold text-primary">{{ sim.simId }}</td>
+                <td>
+                  <div class="fw-bold text-dark fs-6"><i class="bi bi-phone me-1 text-muted"></i>{{ sim.mobileNumber }}</div>
+                </td>
+                <td>
+                  <span class="badge" [class.bg-danger]="sim.provider === 'Airtel'" [class.bg-primary]="sim.provider === 'Jio'" [class.bg-warning]="sim.provider === 'Vi'" [class.bg-secondary]="sim.provider === 'BSNL' || sim.provider === 'Other'" [class.text-dark]="sim.provider === 'Vi'">
+                    {{ sim.provider }}
+                  </span>
+                </td>
+                <td>
+                  <span *ngIf="sim.simSerialNumber" class="small text-muted font-monospace">{{ sim.simSerialNumber }}</span>
+                  <span *ngIf="!sim.simSerialNumber" class="text-muted small">—</span>
+                </td>
+                <td>
+                  <span *ngIf="sim.simType === 'Physical SIM'" class="badge bg-light text-dark border">Physical SIM</span>
+                  <span *ngIf="sim.simType === 'eSIM'" class="badge bg-info-subtle text-info-emphasis border">eSIM</span>
+                </td>
+                <td>
+                  <span *ngIf="sim.assignedMobileId || sim.mappedMobileId" class="badge bg-primary-subtle text-primary border font-monospace">
+                    <i class="bi bi-phone me-1"></i>{{ sim.assignedMobileId || sim.mappedMobileId }}
+                    <span *ngIf="sim.assignedMobileName">({{ sim.assignedMobileName }})</span>
+                  </span>
+                  <span *ngIf="!sim.assignedMobileId && !sim.mappedMobileId" class="badge bg-light text-muted border">
+                    Not Mapped
+                  </span>
+                </td>
+                <td>
+                  <div *ngIf="sim.assignedEmployeeName">
+                    <div class="fw-semibold text-dark">{{ sim.assignedEmployeeName }}</div>
+                    <div class="small text-muted" *ngIf="sim.assignedEmployeeId">ID: {{ sim.assignedEmployeeId }}</div>
+                  </div>
+                  <div *ngIf="!sim.assignedEmployeeName" class="text-muted small">
+                    — Unassigned —
+                  </div>
+                </td>
+                <td>
+                  <span *ngIf="sim.status === 'Available'" class="badge badge-status-available">Available</span>
+                  <span *ngIf="sim.status === 'Assigned'" class="badge badge-status-assigned">Assigned</span>
+                  <span *ngIf="sim.status === 'Inactive'" class="badge badge-status-retired">Inactive</span>
+                </td>
+                <td>
+                  <div *ngIf="sim.latestRechargeAmount">
+                    <div class="fw-semibold text-success">₹{{ sim.latestRechargeAmount }}</div>
+                    <div class="small text-muted">Expires: {{ sim.latestPlanEndDate }}</div>
+                  </div>
+                  <div *ngIf="!sim.latestRechargeAmount" class="text-muted small">
+                    No recharge records
+                  </div>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" (click)="openAddRechargeModal(sim)" title="Recharge this SIM">
+                      <i class="bi bi-wallet2"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="openEditSimModal(sim)" title="Edit SIM Card">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="viewSimDetails(sim)" title="View Details, Assignments & Recharges">
+                      <i class="bi bi-eye"></i> Details
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="sims.length === 0">
+                <td colspan="8" class="text-center py-5 text-muted">
+                  <i class="bi bi-sim fs-2 d-block mb-2 text-secondary"></i>
+                  No SIM cards found matching the criteria.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 3: SIM MAPPING ================= -->
+  <div *ngIf="activeTab === 'mapping'">
+    <!-- Mapping Overview Metrics Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 bg-white border-start border-primary border-4 shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Total Mobiles</div>
+          <div class="fs-3 fw-bold text-dark mt-1">{{ totalMobilesCount }}</div>
+          <div class="text-muted small">Registered in system</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 bg-white border-start border-success border-4 shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Mobiles with SIMs</div>
+          <div class="fs-3 fw-bold text-success mt-1">{{ mappedMobilesCount }}</div>
+          <div class="text-muted small">Hardware slots populated</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 bg-white border-start border-info border-4 shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Free SIM Slots</div>
+          <div class="fs-3 fw-bold text-info mt-1">{{ totalFreeSlotsCount }}</div>
+          <div class="text-muted small">Ready to receive SIMs</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 bg-white border-start border-warning border-4 shadow-sm">
+          <div class="text-muted small fw-semibold text-uppercase">Available SIMs</div>
+          <div class="fs-3 fw-bold text-warning mt-1">{{ unmappedSimsCount }}</div>
+          <div class="text-muted small">Unmapped in inventory</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mapping Filter & Action Bar -->
+    <div class="card card-custom mb-4 p-3 bg-white">
+      <div class="row g-3 align-items-center">
+        <div class="col-12 col-md-8">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search by Mobile ID, Brand, Model, IMEI, Employee, or SIM Number..."
+              [(ngModel)]="mappingSearch"
+            />
+          </div>
+        </div>
+        <div class="col-12 col-md-4 text-md-end">
+          <button class="btn btn-primary-custom w-100" (click)="openMappingModal()">
+            <i class="bi bi-plus-circle me-1"></i> Map SIM to Mobile
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mapping Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-modern mb-0">
+            <thead>
+              <tr>
+                <th>Mobile Device</th>
+                <th>Slot Specification</th>
+                <th>Slot 1 (Primary)</th>
+                <th>Slot 2 (Secondary)</th>
+                <th>Assigned Employee</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let device of filteredMappingDevices">
+                <td>
+                  <div class="fw-bold text-dark">{{ device.name }}</div>
+                  <div class="small text-muted">
+                    <span class="text-primary font-monospace fw-semibold">{{ device.mobileId }}</span> · {{ device.brand }} · <code>{{ device.imeiNumber }}</code>
+                  </div>
+                  <div class="small text-muted mt-1" *ngIf="device.projectName">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-folder-fill text-warning me-1"></i>{{ device.projectName }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span *ngIf="device.simSlotConfig === 'Single SIM'" class="badge bg-secondary-subtle text-secondary border">
+                    Single SIM (1 Slot)
+                  </span>
+                  <span *ngIf="device.simSlotConfig === 'Dual SIM'" class="badge bg-primary-subtle text-primary border">
+                    Dual SIM (2 Slots)
+                  </span>
+                  <div class="small text-muted mt-1">
+                    {{ device.occupiedSlots }} of {{ device.maxSlots }} slots used
+                  </div>
+                </td>
+                <!-- Slot 1 Cell -->
+                <td>
+                  <div *ngIf="device.slot1.isOccupied" class="p-2 rounded bg-light border">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <span class="badge bg-success-subtle text-success-emphasis border">Slot 1 Occupied</span>
+                      <button class="btn btn-sm btn-outline-danger py-0 px-1" (click)="unmapSimSlot(device, 1)" title="Unmap SIM from Slot 1">
+                        <i class="bi bi-x-circle"></i> Unmap
+                      </button>
+                    </div>
+                    <div class="fw-bold text-dark fs-6">{{ device.slot1.mobileNumber }}</div>
+                    <div class="small text-muted">
+                      <span class="badge bg-light text-dark border me-1">{{ device.slot1.provider }}</span>
+                      <span class="font-monospace text-secondary">{{ device.slot1.simId }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="!device.slot1.isOccupied" class="p-2 rounded border border-dashed bg-white text-center">
+                    <span class="text-muted small d-block mb-1">Slot 1 Empty</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2" (click)="openMappingModal(device)" title="Map SIM to Slot 1">
+                      <i class="bi bi-link"></i> Map SIM
+                    </button>
+                  </div>
+                </td>
+                <!-- Slot 2 Cell -->
+                <td>
+                  <!-- Dual SIM phone with occupied slot 2 -->
+                  <div *ngIf="device.maxSlots >= 2 && device.slot2.isOccupied" class="p-2 rounded bg-light border">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <span class="badge bg-info-subtle text-info-emphasis border">Slot 2 Occupied</span>
+                      <button class="btn btn-sm btn-outline-danger py-0 px-1" (click)="unmapSimSlot(device, 2)" title="Unmap SIM from Slot 2">
+                        <i class="bi bi-x-circle"></i> Unmap
+                      </button>
+                    </div>
+                    <div class="fw-bold text-dark fs-6">{{ device.slot2.mobileNumber }}</div>
+                    <div class="small text-muted">
+                      <span class="badge bg-light text-dark border me-1">{{ device.slot2.provider }}</span>
+                      <span class="font-monospace text-secondary">{{ device.slot2.simId }}</span>
+                    </div>
+                  </div>
+                  <!-- Dual SIM phone with empty slot 2 -->
+                  <div *ngIf="device.maxSlots >= 2 && !device.slot2.isOccupied" class="p-2 rounded border border-dashed bg-white text-center">
+                    <span class="text-muted small d-block mb-1">Slot 2 Empty</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2" (click)="openMappingModal(device)" title="Map SIM to Slot 2">
+                      <i class="bi bi-link"></i> Map SIM
+                    </button>
+                  </div>
+                  <!-- Single SIM phone: Slot 2 is N/A -->
+                  <div *ngIf="device.maxSlots < 2" class="p-2 text-center text-muted small bg-light rounded border">
+                    <i class="bi bi-dash-circle me-1"></i> N/A (Single SIM)
+                  </div>
+                </td>
+                <!-- Assigned Employee -->
+                <td>
+                  <div *ngIf="device.assignedEmployeeName">
+                    <div class="fw-semibold text-dark">{{ device.assignedEmployeeName }}</div>
+                    <div class="small text-muted">ID: {{ device.assignedEmployeeId }}</div>
+                  </div>
+                  <div *ngIf="!device.assignedEmployeeName" class="text-muted small">
+                    — Device Unassigned —
+                  </div>
+                </td>
+                <!-- Actions -->
+                <td class="text-end">
+                  <button
+                    *ngIf="device.freeSlots > 0"
+                    class="btn btn-sm btn-primary-custom"
+                    (click)="openMappingModal(device)"
+                    title="Map Available SIM to this Device"
+                  >
+                    <i class="bi bi-link me-1"></i> Map SIM
+                  </button>
+                  <span *ngIf="device.freeSlots === 0" class="badge bg-secondary-subtle text-secondary border">
+                    All Slots Filled
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="filteredMappingDevices.length === 0">
+                <td colspan="6" class="text-center py-5 text-muted">
+                  <i class="bi bi-cpu fs-2 d-block mb-2 text-secondary"></i>
+                  No mobile devices found matching the filter.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 4: SIM ASSIGNMENTS ================= -->
+  <div *ngIf="activeTab === 'assignments'">
+    <!-- Filter Toolbar -->
+    <div class="card card-custom mb-4 p-3 bg-white">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search by Employee, Mobile #, Provider, or Device..."
+              [(ngModel)]="assignmentSearch"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <select class="form-select" [(ngModel)]="assignmentStatusFilter">
+            <option value="ALL">All Assignments</option>
+            <option value="Active">Active Only</option>
+            <option value="Returned">Returned Only</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <button class="btn btn-primary-custom w-100" (click)="openSimAssignModal()">
+            <i class="bi bi-plus-circle me-1"></i> Issue New SIM
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignments Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-modern mb-0">
+            <thead>
+              <tr>
+                <th>SIM Mobile & Provider</th>
+                <th>Assigned Employee</th>
+                <th>Paired Mobile Device</th>
+                <th>Issue Date</th>
+                <th>Returned Date</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let assign of getFilteredAssignments()">
+                <td>
+                  <div class="fw-bold text-dark">{{ assign.mobileNumber }}</div>
+                  <span class="badge bg-light text-dark border">{{ assign.provider }} ({{ assign.simCode }})</span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ assign.employeeName }}</div>
+                  <div class="small text-muted">ID: {{ assign.employeeId }}</div>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ assign.mobileName }}</div>
+                  <div class="small d-flex align-items-center gap-1 mt-1">
+                    <span class="badge bg-primary-subtle text-primary border">Slot {{ assign.slotNumber || 1 }}</span>
+                    <span class="text-muted small">Device ID: {{ assign.mobileId }}</span>
+                  </div>
+                </td>
+                <td>{{ assign.issuedDate }}</td>
+                <td>{{ assign.returnedDate || '—' }}</td>
+                <td>
+                  <span *ngIf="assign.status === 'Active'" class="badge badge-status-active">Active</span>
+                  <span *ngIf="assign.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                </td>
+                <td class="small text-muted">{{ assign.remarks || '—' }}</td>
+                <td class="text-end">
+                  <button *ngIf="assign.status === 'Active'" class="btn btn-sm btn-outline-warning text-dark fw-semibold" (click)="openSimReturnModal(assign)">
+                    <i class="bi bi-arrow-return-left me-1"></i> Return SIM
+                  </button>
+                  <span *ngIf="assign.status === 'Returned'" class="text-muted small">Completed</span>
+                </td>
+              </tr>
+              <tr *ngIf="getFilteredAssignments().length === 0">
+                <td colspan="8" class="text-center py-5 text-muted">
+                  <i class="bi bi-link-45deg fs-2 d-block mb-2 text-secondary"></i>
+                  No SIM assignment records found.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 4: RECHARGE HISTORY ================= -->
+  <div *ngIf="activeTab === 'recharges'">
+    <!-- Expiry Alert Banner -->
+    <div *ngIf="notifications.length > 0" class="alert alert-warning border-warning p-3 mb-4 rounded-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill fs-4 text-warning me-3"></i>
+          <div>
+            <h6 class="fw-bold mb-0 text-dark">SIM Recharge Attention Required</h6>
+            <div class="small text-muted">There are {{ notifications.length }} SIM cards that have expired or are expiring within the next 7 days.</div>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-warning text-dark fw-semibold" (click)="rechargeExpiryOnly = !rechargeExpiryOnly">
+          {{ rechargeExpiryOnly ? 'Show All Recharges' : 'Filter Expiring SIMs' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="card card-custom mb-4 p-3 bg-white">
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search by Mobile Number..."
+              [(ngModel)]="rechargeMobileFilter"
+              (keyup.enter)="applyRechargeFilter()"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <select class="form-select" [(ngModel)]="rechargeProviderFilter" (change)="applyRechargeFilter()">
+            <option value="ALL">All Providers</option>
+            <option *ngFor="let p of providers" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Filter by Employee Name..."
+            [(ngModel)]="rechargeEmployeeFilter"
+            (keyup.enter)="applyRechargeFilter()"
+          />
+        </div>
+        <div class="col-12 col-md-2">
+          <button class="btn btn-outline-secondary w-100" (click)="applyRechargeFilter()">
+            <i class="bi bi-funnel"></i> Filter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recharges Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-modern mb-0">
+            <thead>
+              <tr>
+                <th>Mobile Number & Provider</th>
+                <th>Assigned Employee</th>
+                <th>Plan Details</th>
+                <th>Recharge Amount</th>
+                <th>Recharge Date</th>
+                <th>Plan End Date</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of getFilteredRecharges()">
+                <td>
+                  <div class="fw-bold text-dark">{{ r.mobileNumber }}</div>
+                  <span class="badge" [class.bg-danger]="r.provider === 'Airtel'" [class.bg-primary]="r.provider === 'Jio'" [class.bg-warning]="r.provider === 'Vi'" [class.bg-secondary]="r.provider === 'BSNL' || r.provider === 'Other'" [class.text-dark]="r.provider === 'Vi'">
+                    {{ r.provider }}
+                  </span>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ r.employeeName || 'In Inventory' }}</div>
+                  <div *ngIf="r.employeeId" class="small text-muted">ID: {{ r.employeeId }}</div>
+                </td>
+                <td>
+                  <div class="small fw-semibold text-dark">{{ r.rechargePlan }}</div>
+                </td>
+                <td>
+                  <span class="fw-bold text-success fs-6">₹{{ r.rechargeAmount }}</span>
+                </td>
+                <td>{{ r.rechargeDate }}</td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ r.planEndDate }}</div>
+                </td>
+                <td class="small text-muted">{{ r.remarks || '—' }}</td>
+              </tr>
+              <tr *ngIf="getFilteredRecharges().length === 0">
+                <td colspan="7" class="text-center py-5 text-muted">
+                  <i class="bi bi-wallet2 fs-2 d-block mb-2 text-secondary"></i>
+                  No recharge records matching the selected criteria.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Mobile Phone Add / Edit Modal -->
+  <div *ngIf="showMobileFormModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showMobileFormModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-phone me-2 text-primary"></i>
+            {{ isEditingMobile ? 'Edit Mobile Phone Asset' : 'Register New Mobile Phone' }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeMobileFormModal()"></button>
+        </div>
+        <form [formGroup]="mobileForm" (ngSubmit)="saveMobile()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Mobile ID (Auto-Generated) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-tag-fill text-primary"></i></span>
+                  <input
+                    type="text"
+                    class="form-control bg-light font-monospace fw-bold"
+                    placeholder="Generating MOB-xxxx..."
+                    formControlName="mobileId"
+                    readonly
+                  />
+                </div>
+                <small class="text-muted"><i class="bi bi-shield-check text-success"></i> Auto-generated unique identifier</small>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Device Display Name <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. Galaxy S23 Ultra"
+                  formControlName="name"
+                  [class.is-invalid]="mobileForm.get('name')?.touched && mobileForm.get('name')?.invalid"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Brand <span class="text-danger">*</span></label>
+                <select
+                  class="form-select"
+                  formControlName="brandSelect"
+                  (change)="onBrandChange()"
+                  [class.is-invalid]="mobileForm.get('brandSelect')?.touched && mobileForm.get('brandSelect')?.invalid"
+                >
+                  <option value="">Select Brand</option>
+                  <option *ngFor="let b of brands" [value]="b">{{ b }}</option>
+                </select>
+                <div *ngIf="mobileForm.get('brandSelect')?.value === 'Other'" class="mt-2">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Enter Brand Name..."
+                    formControlName="customBrand"
+                    [class.is-invalid]="mobileForm.get('customBrand')?.touched && mobileForm.get('customBrand')?.invalid"
+                  />
+                  <div class="invalid-feedback small">Brand name is required when selecting Other.</div>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Model (Optional)</label>
+                <input type="text" class="form-control" placeholder="e.g. SM-S918B" formControlName="model" />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">IMEI Number (15 Digits) <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control font-monospace"
+                  placeholder="15 numeric digits"
+                  formControlName="imeiNumber"
+                  maxlength="15"
+                  [class.is-invalid]="mobileForm.get('imeiNumber')?.touched && mobileForm.get('imeiNumber')?.invalid"
+                />
+                <div *ngIf="mobileForm.get('imeiNumber')?.touched && mobileForm.get('imeiNumber')?.invalid" class="invalid-feedback">
+                  IMEI must be exactly 15 digits.
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Project Name <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. Project Titan, Core Banking"
+                  formControlName="projectName"
+                  [class.is-invalid]="mobileForm.get('projectName')?.touched && mobileForm.get('projectName')?.invalid"
+                />
+                <div *ngIf="mobileForm.get('projectName')?.touched && mobileForm.get('projectName')?.invalid" class="invalid-feedback">
+                  Project Name is required.
+                </div>
+              </div>
+
+              <!-- SIM Slot Configuration (Single SIM or Dual SIM ONLY) -->
+              <div class="col-12 col-md-4">
+                <label class="form-label">SIM Slot Configuration <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="simSlotConfig">
+                  <option *ngFor="let s of slotConfigs" [value]="s">{{ s }}</option>
+                </select>
+                <div class="form-text small">
+                  {{ mobileForm.get('simSlotConfig')?.value === 'Single SIM' ? 'Single SIM: allows max 1 active SIM card' : 'Dual SIM: allows max 2 active SIM cards' }}
+                </div>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">Purchase Date</label>
+                <input type="date" class="form-control" formControlName="purchaseDate" />
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">Hardware Status <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="status">
+                  <option value="Available">Available</option>
+                  <option value="Under Repair">Under Repair</option>
+                  <option value="Retired">Retired</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeMobileFormModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm">
+              <i class="bi bi-check-lg"></i> {{ isEditingMobile ? 'Update Mobile Asset' : 'Save Mobile Asset' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Mobile Assign Modal -->
+  <div *ngIf="showMobileAssignModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showMobileAssignModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-person-check me-2 text-primary"></i> Assign Mobile: {{ selectedMobileForAssign?.name }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeMobileAssignModal()"></button>
+        </div>
+        <form [formGroup]="mobileAssignForm" (ngSubmit)="submitMobileAssign()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Select Employee <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="employeeId" [class.is-invalid]="mobileAssignForm.get('employeeId')?.touched && mobileAssignForm.get('employeeId')?.invalid">
+                <option value="">-- Choose Active Employee --</option>
+                <option *ngFor="let emp of employees" [value]="emp.employeeId">
+                  {{ emp.name }} ({{ emp.employeeId }}) - {{ emp.department }}
+                </option>
+              </select>
+              <div class="form-text small">Each employee can have at most one active mobile phone.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Assignment Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="assignedDate" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Assignment Remarks</label>
+              <textarea class="form-control" rows="2" placeholder="e.g. Issued for on-call operations" formControlName="remarks"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeMobileAssignModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm">Confirm Assignment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Mobile Return Modal (With Return Safeguard Check) -->
+  <div *ngIf="showMobileReturnModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showMobileReturnModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-arrow-return-left me-2 text-warning"></i> Return Mobile Phone
+          </h5>
+          <button type="button" class="btn-close" (click)="closeMobileReturnModal()"></button>
+        </div>
+        <form [formGroup]="mobileReturnForm" (ngSubmit)="submitMobileReturn()">
+          <div class="modal-body p-4">
+            <!-- Safeguard Warning -->
+            <div *ngIf="mobileActiveSimWarning" class="alert alert-danger p-3 mb-3">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-shield-x fs-4 me-2"></i>
+                <div>
+                  <strong class="d-block">Return Blocked by Safeguard Rule:</strong>
+                  <span>{{ mobileActiveSimWarning }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="!mobileActiveSimWarning" class="p-3 mb-3 bg-light rounded border">
+              <div class="small text-muted">Currently Assigned To:</div>
+              <div class="fw-bold text-dark">{{ selectedMobileForReturn?.assignedEmployeeName }} ({{ selectedMobileForReturn?.assignedEmployeeId }})</div>
+              <div class="small text-muted mt-1">Project: {{ selectedMobileForReturn?.projectName }} | Slot: {{ selectedMobileForReturn?.simSlotConfig }}</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Return Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="returnedDate" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Hardware Return Condition <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="returnCondition">
+                <option value="Good">Good - No Damage</option>
+                <option value="Fair">Fair - Minor Scratches</option>
+                <option value="Damaged">Damaged - Requires Repair</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-control" rows="2" placeholder="Inspection notes..." formControlName="remarks"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeMobileReturnModal()">Cancel</button>
+            <button
+              type="submit"
+              class="btn btn-warning btn-sm text-dark fw-semibold"
+              [disabled]="selectedMobileForReturn && selectedMobileForReturn.activeSimCount > 0"
+            >
+              Confirm Return
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Mobile History Modal -->
+  <div *ngIf="showMobileHistoryModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showMobileHistoryModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-clock-history me-2 text-primary"></i> Lifecycle History: {{ historyMobile?.name }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeMobileHistoryModal()"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="p-3 mb-3 bg-light rounded border d-flex flex-wrap gap-3 align-items-center justify-content-between small">
+            <div><span class="text-muted">Project:</span> <strong class="ms-1 text-dark">{{ historyMobile?.projectName || '—' }}</strong></div>
+            <div><span class="text-muted">IMEI:</span> <code class="ms-1">{{ historyMobile?.imeiNumber }}</code></div>
+            <div><span class="text-muted">SIM Slot:</span> <span class="ms-1 badge bg-primary-subtle text-primary border">{{ historyMobile?.simSlotConfig }}</span></div>
+            <div><span class="text-muted">Status:</span> <strong class="ms-1 text-primary">{{ historyMobile?.status }}</strong></div>
+          </div>
+
+          <div *ngIf="historyMobile" class="p-2 mb-3 bg-light rounded border small d-flex flex-wrap gap-2 align-items-center">
+            <span class="text-muted fw-semibold">Active Hardware Mapping:</span>
+            <span *ngIf="historyMobile.slot1MobileNumber" class="badge bg-success-subtle text-success-emphasis border">
+              <i class="bi bi-sim-fill me-1 text-success"></i>Slot 1: {{ historyMobile.slot1MobileNumber }} ({{ historyMobile.slot1Provider }})
+            </span>
+            <span *ngIf="!historyMobile.slot1MobileNumber" class="badge bg-white text-muted border">
+              Slot 1: Empty
+            </span>
+
+            <ng-container *ngIf="historyMobile.simSlotConfig === 'Dual SIM'">
+              <span *ngIf="historyMobile.slot2MobileNumber" class="badge bg-info-subtle text-info-emphasis border">
+                <i class="bi bi-sim-fill me-1 text-info"></i>Slot 2: {{ historyMobile.slot2MobileNumber }} ({{ historyMobile.slot2Provider }})
+              </span>
+              <span *ngIf="!historyMobile.slot2MobileNumber" class="badge bg-white text-muted border">
+                Slot 2: Empty
+              </span>
+            </ng-container>
+            <span *ngIf="historyMobile.simSlotConfig === 'Single SIM'" class="badge bg-white text-muted border">
+              Slot 2: Not Supported
+            </span>
+          </div>
+
+          <div *ngIf="loadingMobileHistory" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+
+          <div *ngIf="!loadingMobileHistory" class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee</th>
+                  <th>Assigned Date</th>
+                  <th>Returned Date</th>
+                  <th>Status</th>
+                  <th>Condition</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of mobileHistory">
+                  <td class="fw-semibold">{{ item.employeeName }} <span class="text-muted small">({{ item.employeeId }})</span></td>
+                  <td>{{ item.assignedDate }}</td>
+                  <td>{{ item.returnedDate || '—' }}</td>
+                  <td>
+                    <span *ngIf="item.status === 'Active'" class="badge badge-status-active">Active</span>
+                    <span *ngIf="item.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                  </td>
+                  <td>{{ item.returnCondition || '—' }}</td>
+                  <td class="small text-muted">{{ item.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="mobileHistory.length === 0">
+                  <td colspan="6" class="text-center py-3 text-muted small">No past assignment records found for this mobile phone.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="closeMobileHistoryModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. SIM Card Add / Edit Modal -->
+  <div *ngIf="showSimFormModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showSimFormModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-sim me-2 text-primary"></i>
+            {{ isEditingSim ? 'Edit SIM Card' : 'Register New SIM Card' }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeSimFormModal()"></button>
+        </div>
+        <form [formGroup]="simForm" (ngSubmit)="saveSim()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">SIM Identifier / Code <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. SIM-101"
+                formControlName="simId"
+                [class.is-invalid]="simForm.get('simId')?.touched && simForm.get('simId')?.invalid"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Mobile Number (10 Digits) <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. 9876543210"
+                formControlName="mobileNumber"
+                maxlength="10"
+                [class.is-invalid]="simForm.get('mobileNumber')?.touched && simForm.get('mobileNumber')?.invalid"
+              />
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label">Provider <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="provider">
+                  <option *ngFor="let p of providers" [value]="p">{{ p }}</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">SIM Type <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="simType">
+                  <option value="Physical SIM">Physical SIM</option>
+                  <option value="eSIM">eSIM</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">SIM Serial Number (Optional)</label>
+              <input type="text" class="form-control" placeholder="e.g. 8991000987654321" formControlName="simSerialNumber" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="status">
+                <option value="Available">Available</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeSimFormModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm">
+              <i class="bi bi-check-lg"></i> {{ isEditingSim ? 'Update SIM' : 'Save SIM' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. SIM Details Modal (Assignments & Recharges) -->
+  <div *ngIf="showSimDetailsModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showSimDetailsModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-sim me-2 text-primary"></i> SIM Profile: {{ selectedSimForDetails?.mobileNumber }} ({{ selectedSimForDetails?.provider }})
+          </h5>
+          <button type="button" class="btn-close" (click)="closeSimDetailsModal()"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Summary Header -->
+          <div class="p-3 mb-3 bg-light rounded border d-flex flex-wrap gap-3 align-items-center justify-content-between small">
+            <div><span class="text-muted">Type:</span> <strong class="ms-1">{{ selectedSimForDetails?.simType }}</strong></div>
+            <div><span class="text-muted">Serial:</span> <code class="ms-1">{{ selectedSimForDetails?.simSerialNumber || '—' }}</code></div>
+            <div><span class="text-muted">Status:</span> <strong class="ms-1 text-primary">{{ selectedSimForDetails?.status }}</strong></div>
+            <div><span class="text-muted">Assigned To:</span> <span class="ms-1 text-dark fw-semibold">{{ selectedSimForDetails?.assignedEmployeeName || 'Unassigned' }}</span></div>
+          </div>
+
+          <!-- Sub-tabs -->
+          <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="simDetailsTab === 'history'" (click)="simDetailsTab = 'history'">
+                <i class="bi bi-clock-history me-1"></i> Assignment History
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="simDetailsTab === 'recharges'" (click)="simDetailsTab = 'recharges'">
+                <i class="bi bi-wallet2 me-1"></i> Recharge History
+              </button>
+            </li>
+          </ul>
+
+          <div *ngIf="loadingSimDetails" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+
+          <!-- Tab: History -->
+          <div *ngIf="!loadingSimDetails && simDetailsTab === 'history'" class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee</th>
+                  <th>Paired Device</th>
+                  <th>Issue Date</th>
+                  <th>Returned Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of simDetailsHistory">
+                  <td class="fw-semibold">{{ h.employeeName }} <span class="text-muted small">({{ h.employeeId }})</span></td>
+                  <td>{{ h.mobileName }}</td>
+                  <td>{{ h.issuedDate }}</td>
+                  <td>{{ h.returnedDate || '—' }}</td>
+                  <td>
+                    <span *ngIf="h.status === 'Active'" class="badge badge-status-active">Active</span>
+                    <span *ngIf="h.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                  </td>
+                </tr>
+                <tr *ngIf="simDetailsHistory.length === 0">
+                  <td colspan="5" class="text-center py-3 text-muted small">No assignment history records for this SIM.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tab: Recharges -->
+          <div *ngIf="!loadingSimDetails && simDetailsTab === 'recharges'" class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Plan</th>
+                  <th>Amount</th>
+                  <th>Recharge Date</th>
+                  <th>Plan End Date</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of simDetailsRecharges">
+                  <td class="fw-semibold">{{ r.rechargePlan }}</td>
+                  <td class="text-success fw-bold">₹{{ r.rechargeAmount }}</td>
+                  <td>{{ r.rechargeDate }}</td>
+                  <td>{{ r.planEndDate }}</td>
+                  <td class="small text-muted">{{ r.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="simDetailsRecharges.length === 0">
+                  <td colspan="5" class="text-center py-3 text-muted small">No recharge history recorded for this SIM.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="closeSimDetailsModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. SIM Issue Modal -->
+  <div *ngIf="showSimAssignModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showSimAssignModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-link-45deg me-2 text-primary fs-4"></i> Issue SIM to Corporate Phone
+          </h5>
+          <button type="button" class="btn-close" (click)="closeSimAssignModal()"></button>
+        </div>
+        <form [formGroup]="simAssignForm" (ngSubmit)="submitSimAssign()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Select Employee <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="employeeId" (change)="onEmployeeSelectedForSim()">
+                <option value="">-- Choose Employee --</option>
+                <option *ngFor="let emp of employees" [value]="emp.employeeId">
+                  {{ emp.name }} ({{ emp.employeeId }})
+                </option>
+              </select>
+              <div class="form-text small">Employee must hold an assigned mobile device. Max 2 active SIMs per employee.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Select Paired Mobile Phone <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="mobileId" (change)="onMobileSelectedForSim()">
+                <option value="">-- Choose Mobile Device --</option>
+                <option *ngFor="let m of filteredMobilesForEmployee" [value]="m.id">
+                  {{ m.name }} ({{ m.mobileId }}) - Spec: {{ m.simSlotConfig }} (Active: {{ m.activeSimCount }})
+                </option>
+              </select>
+              <div *ngIf="simAssignForm.get('employeeId')?.value && filteredMobilesForEmployee.length === 0" class="text-danger small mt-1">
+                This employee does not have an assigned mobile phone. Assign a mobile phone first!
+              </div>
+            </div>
+
+            <!-- Device Telecom Hardware Specification Panel -->
+            <div *ngIf="selectedMobileForSimIssue && mobileSpecDetails" class="p-3 mb-3 bg-light rounded-3 border">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold small text-dark">
+                  <i class="bi bi-cpu me-1 text-primary"></i> Device Hardware Specification
+                </span>
+                <span class="badge" [class.bg-danger]="mobileSpecDetails.isFull" [class.bg-success]="!mobileSpecDetails.isFull">
+                  {{ mobileSpecDetails.isFull ? 'Capacity Full (' + mobileSpecDetails.usedSlots + '/' + mobileSpecDetails.maxSlots + ')' : 'Slot Available (' + mobileSpecDetails.usedSlots + '/' + mobileSpecDetails.maxSlots + ')' }}
+                </span>
+              </div>
+              <div class="row g-2 small">
+                <div class="col-6">
+                  <span class="text-muted">Configuration:</span>
+                  <span class="ms-1 fw-semibold text-primary">{{ mobileSpecDetails.slotConfig }}</span>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted">Required Format:</span>
+                  <span class="ms-1 fw-semibold text-dark">{{ mobileSpecDetails.supportedFormat }}</span>
+                </div>
+                <div class="col-12 mt-1">
+                  <span class="text-muted">Device:</span>
+                  <span class="ms-1 text-dark">{{ selectedMobileForSimIssue.brand }} {{ selectedMobileForSimIssue.model || selectedMobileForSimIssue.name }} (<code>{{ selectedMobileForSimIssue.imeiNumber }}</code>)</span>
+                </div>
+              </div>
+              <!-- Slot Progress Bar -->
+              <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar" [class.bg-danger]="mobileSpecDetails.isFull" [class.bg-primary]="!mobileSpecDetails.isFull" [style.width.%]="(mobileSpecDetails.usedSlots / mobileSpecDetails.maxSlots) * 100"></div>
+              </div>
+            </div>
+
+            <!-- Explicit Hardware Slot Selection (Slot 1 vs Slot 2) -->
+            <div *ngIf="selectedMobileForSimIssue && mobileSpecDetails" class="mb-3">
+              <label class="form-label fw-semibold">Target Hardware Slot <span class="text-danger">*</span></label>
+              <div class="row g-2">
+                <!-- Slot 1 -->
+                <div class="col-6">
+                  <label class="card p-2 h-100 border text-start" [class.border-primary]="simAssignForm.get('slotNumber')?.value === 1" [class.bg-light]="mobileSpecDetails.slot1Occupied" role="button">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex align-items-center">
+                        <input type="radio" class="form-check-input me-2" [value]="1" formControlName="slotNumber" [disabled]="mobileSpecDetails.slot1Occupied">
+                        <span class="fw-bold small">Slot 1 (Primary)</span>
+                      </div>
+                      <span *ngIf="mobileSpecDetails.slot1Occupied" class="badge bg-danger-subtle text-danger border small">Occupied</span>
+                      <span *ngIf="!mobileSpecDetails.slot1Occupied" class="badge bg-success-subtle text-success border small">Free</span>
+                    </div>
+                    <div *ngIf="mobileSpecDetails.slot1Occupied" class="small text-muted mt-1 text-truncate" title="{{ mobileSpecDetails.slot1Label }}">
+                      <i class="bi bi-sim me-1"></i>{{ mobileSpecDetails.slot1Label }}
+                    </div>
+                    <div *ngIf="!mobileSpecDetails.slot1Occupied" class="small text-success mt-1">
+                      Ready to map SIM
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Slot 2 -->
+                <div class="col-6">
+                  <label class="card p-2 h-100 border text-start" [class.border-primary]="simAssignForm.get('slotNumber')?.value === 2" [class.bg-light]="mobileSpecDetails.maxSlots < 2 || mobileSpecDetails.slot2Occupied" role="button">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex align-items-center">
+                        <input type="radio" class="form-check-input me-2" [value]="2" formControlName="slotNumber" [disabled]="mobileSpecDetails.maxSlots < 2 || mobileSpecDetails.slot2Occupied">
+                        <span class="fw-bold small">Slot 2 (Secondary)</span>
+                      </div>
+                      <span *ngIf="mobileSpecDetails.maxSlots < 2" class="badge bg-secondary-subtle text-secondary border small">N/A</span>
+                      <span *ngIf="mobileSpecDetails.maxSlots >= 2 && mobileSpecDetails.slot2Occupied" class="badge bg-danger-subtle text-danger border small">Occupied</span>
+                      <span *ngIf="mobileSpecDetails.maxSlots >= 2 && !mobileSpecDetails.slot2Occupied" class="badge bg-success-subtle text-success border small">Free</span>
+                    </div>
+                    <div *ngIf="mobileSpecDetails.maxSlots < 2" class="small text-muted mt-1">
+                      Single SIM hardware (No Slot 2)
+                    </div>
+                    <div *ngIf="mobileSpecDetails.maxSlots >= 2 && mobileSpecDetails.slot2Occupied" class="small text-muted mt-1 text-truncate" title="{{ mobileSpecDetails.slot2Label }}">
+                      <i class="bi bi-sim me-1"></i>{{ mobileSpecDetails.slot2Label }}
+                    </div>
+                    <div *ngIf="mobileSpecDetails.maxSlots >= 2 && !mobileSpecDetails.slot2Occupied" class="small text-success mt-1">
+                      Ready to map SIM
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0">Select Compatible SIM Card <span class="text-danger">*</span></label>
+                <span *ngIf="mobileSpecDetails" class="badge bg-primary-subtle text-primary border small">
+                  Filtered by Spec: {{ mobileSpecDetails.slotConfig }}
+                </span>
+              </div>
+              <select class="form-select" formControlName="simId" (change)="onSimSelectedForIssue()" [disabled]="mobileSpecDetails?.isFull">
+                <option value="">-- Choose Compatible SIM --</option>
+                <option *ngFor="let s of availableSimsForIssue" [value]="s.id">
+                  {{ s.provider }} - {{ s.mobileNumber }} ({{ s.simType }})
+                </option>
+              </select>
+              <div *ngIf="availableSimsForIssue.length === 0 && !mobileSpecDetails?.isFull && selectedMobileForSimIssue" class="text-warning small mt-1">
+                <i class="bi bi-info-circle me-1"></i> No available SIM cards matching {{ selectedMobileForSimIssue.simSlotConfig }} specifications in inventory.
+              </div>
+            </div>
+
+            <!-- Instant SIM Specification Match Indicator -->
+            <div *ngIf="selectedSimForIssue && mobileSpecDetails" class="p-2 mb-3 bg-success-subtle rounded border border-success-subtle d-flex align-items-center justify-content-between small">
+              <div>
+                <i class="bi bi-check-circle-fill text-success me-1"></i>
+                <span class="fw-semibold text-success-emphasis">Specification Match:</span>
+                <span class="ms-1 text-dark">{{ selectedSimForIssue.simType }} matches {{ mobileSpecDetails.slotConfig }}</span>
+              </div>
+              <span class="badge bg-success">Slot {{ mobileSpecDetails.usedSlots + 1 }} of {{ mobileSpecDetails.maxSlots }}</span>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Issue Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="issuedDate" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-control" rows="2" placeholder="Assignment justification or notes..." formControlName="remarks"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeSimAssignModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm" [disabled]="mobileSpecDetails?.isFull || simAssignForm.invalid || !selectedSimForIssue">
+              <i class="bi bi-check-lg me-1"></i> Confirm SIM Issue
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. SIM Return Modal -->
+  <div *ngIf="showSimReturnModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showSimReturnModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-arrow-return-left me-2 text-warning"></i> Return SIM Card
+          </h5>
+          <button type="button" class="btn-close" (click)="closeSimReturnModal()"></button>
+        </div>
+        <form [formGroup]="simReturnForm" (ngSubmit)="submitSimReturn()">
+          <div class="modal-body p-4">
+            <div class="p-3 mb-3 bg-light rounded border">
+              <div><span class="text-muted small">SIM Mobile:</span> <strong class="ms-1">{{ selectedSimAssignmentForReturn?.mobileNumber }}</strong></div>
+              <div><span class="text-muted small">Employee:</span> <span class="ms-1">{{ selectedSimAssignmentForReturn?.employeeName }}</span></div>
+              <div><span class="text-muted small">Paired Phone:</span> <span class="ms-1">{{ selectedSimAssignmentForReturn?.mobileName }}</span></div>
+              <div class="mt-1"><span class="text-muted small">Mapped Slot:</span> <span class="badge bg-primary-subtle text-primary border ms-1">Slot {{ selectedSimAssignmentForReturn?.slotNumber || 1 }}</span></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Return Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="returnedDate" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-control" rows="2" placeholder="Return reason or SIM status notes..." formControlName="remarks"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeSimReturnModal()">Cancel</button>
+            <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold">Confirm Return</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Record Recharge Modal -->
+  <div *ngIf="showRechargeModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showRechargeModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-wallet2 me-2 text-primary"></i> Record SIM Recharge
+          </h5>
+          <button type="button" class="btn-close" (click)="closeRechargeModal()"></button>
+        </div>
+        <form [formGroup]="rechargeForm" (ngSubmit)="submitRecharge()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Select SIM Card <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="simId">
+                <option value="">-- Choose SIM Card --</option>
+                <option *ngFor="let s of sims" [value]="s.id">
+                  {{ s.provider }} - {{ s.mobileNumber }} ({{ s.status }}{{ s.assignedEmployeeName ? ' - ' + s.assignedEmployeeName : '' }})
+                </option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Recharge Plan Description <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" placeholder="e.g. 84 Days Unlimited Voice + 2GB/day" formControlName="rechargePlan" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Recharge Amount (₹) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" placeholder="e.g. 719" formControlName="rechargeAmount" min="1" />
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label">Recharge Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" formControlName="rechargeDate" />
+              </div>
+              <div class="col-6">
+                <label class="form-label">Plan Expiry Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" formControlName="planEndDate" />
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-control" rows="2" placeholder="Payment receipt number or telecom notes..." formControlName="remarks"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeRechargeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm">Save Recharge</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated SIM Mapping Modal -->
+  <div *ngIf="showMappingModal" class="modal-backdrop fade show"></div>
+  <div *ngIf="showMappingModal" class="modal show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-cpu me-2 text-primary"></i> Map SIM Card to Mobile Device
+          </h5>
+          <button type="button" class="btn-close" (click)="closeMappingModal()"></button>
+        </div>
+        <form [formGroup]="mappingForm" (ngSubmit)="confirmMapping()">
+          <div class="modal-body p-4">
+            <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+              {{ errorMessage }}
+            </div>
+
+            <!-- 1. Select Mobile Phone -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Target Mobile Phone <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                formControlName="mobileId"
+                (change)="onMappingMobileChange()"
+                [class.is-invalid]="mappingForm.get('mobileId')?.touched && mappingForm.get('mobileId')?.invalid"
+              >
+                <option value="">Select Mobile Device</option>
+                <option *ngFor="let m of mappingDevices" [value]="m.mobileId" [disabled]="m.freeSlots === 0">
+                  {{ m.name }} ({{ m.mobileId }}) — {{ m.brand }} [{{ m.simSlotConfig }}] · {{ m.freeSlots > 0 ? (m.freeSlots + ' free slot(s)') : 'FULL' }}
+                </option>
+              </select>
+              <div class="invalid-feedback small">Please select a mobile device.</div>
+            </div>
+
+            <!-- Mobile Phone Slot Spec Info Card -->
+            <div *ngIf="selectedMobileForMapping" class="p-3 mb-3 bg-light rounded border">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-semibold text-dark">{{ selectedMobileForMapping.name }}</span>
+                <span class="badge bg-primary">{{ selectedMobileForMapping.simSlotConfig }}</span>
+              </div>
+              <div class="small text-muted mb-2">IMEI: <code>{{ selectedMobileForMapping.imeiNumber }}</code></div>
+              <div class="row g-2 small">
+                <div class="col-6">
+                  <div class="p-2 rounded border" [class.bg-white]="!selectedMobileForMapping.slot1.isOccupied" [class.bg-success-subtle]="selectedMobileForMapping.slot1.isOccupied">
+                    <span class="fw-bold">Slot 1:</span>
+                    <span *ngIf="selectedMobileForMapping.slot1.isOccupied" class="text-success-emphasis d-block">{{ selectedMobileForMapping.slot1.mobileNumber }} ({{ selectedMobileForMapping.slot1.provider }})</span>
+                    <span *ngIf="!selectedMobileForMapping.slot1.isOccupied" class="text-muted d-block">Empty & Ready</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded border" [class.bg-white]="selectedMobileForMapping.maxSlots >= 2 && !selectedMobileForMapping.slot2.isOccupied" [class.bg-info-subtle]="selectedMobileForMapping.maxSlots >= 2 && selectedMobileForMapping.slot2.isOccupied" [class.bg-light]="selectedMobileForMapping.maxSlots < 2">
+                    <span class="fw-bold">Slot 2:</span>
+                    <span *ngIf="selectedMobileForMapping.maxSlots < 2" class="text-muted d-block">Not Supported</span>
+                    <span *ngIf="selectedMobileForMapping.maxSlots >= 2 && selectedMobileForMapping.slot2.isOccupied" class="text-info-emphasis d-block">{{ selectedMobileForMapping.slot2.mobileNumber }} ({{ selectedMobileForMapping.slot2.provider }})</span>
+                    <span *ngIf="selectedMobileForMapping.maxSlots >= 2 && !selectedMobileForMapping.slot2.isOccupied" class="text-muted d-block">Empty & Ready</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Target Slot -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Target Hardware Slot <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="slotNumber">
+                <option [ngValue]="1" [disabled]="selectedMobileForMapping?.slot1?.isOccupied">
+                  Slot 1 (Primary) {{ selectedMobileForMapping?.slot1?.isOccupied ? '— OCCUPIED' : '' }}
+                </option>
+                <option [ngValue]="2" [disabled]="selectedMobileForMapping?.maxSlots === 1 || selectedMobileForMapping?.slot2?.isOccupied">
+                  Slot 2 (Secondary) {{ selectedMobileForMapping?.maxSlots === 1 ? '— N/A for Single SIM' : (selectedMobileForMapping?.slot2?.isOccupied ? '— OCCUPIED' : '') }}
+                </option>
+              </select>
+            </div>
+
+            <!-- 3. Select Available SIM Card -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Available SIM Card <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                formControlName="simId"
+                (change)="onMappingSimChange()"
+                [class.is-invalid]="mappingForm.get('simId')?.touched && mappingForm.get('simId')?.invalid"
+              >
+                <option value="">Select an Unmapped SIM</option>
+                <option *ngFor="let s of availableSimsForMapping" [value]="s.simId">
+                  {{ s.mobileNumber }} ({{ s.provider }}) — {{ s.simId }} [{{ s.simType }}]
+                </option>
+              </select>
+              <div class="invalid-feedback small">Please select a SIM card to map.</div>
+              <div *ngIf="availableSimsForMapping.length === 0" class="text-warning small mt-1">
+                <i class="bi bi-exclamation-triangle"></i> No unmapped SIM cards currently available.
+              </div>
+            </div>
+
+            <!-- Prominent Auto-Display Box for Selected SIM -->
+            <div *ngIf="selectedSimForMapping" class="card border-primary bg-primary-subtle p-3 mb-3">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-sim text-primary fs-4"></i>
+                <div>
+                  <div class="fw-bold text-dark fs-5 font-monospace">{{ selectedSimForMapping.mobileNumber }}</div>
+                  <div class="small text-muted">SIM Identifier: <strong>{{ selectedSimForMapping.simId }}</strong></div>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <span class="badge" [class.bg-danger]="selectedSimForMapping.provider === 'Airtel'" [class.bg-primary]="selectedSimForMapping.provider === 'Jio'" [class.bg-warning]="selectedSimForMapping.provider === 'Vi'" [class.bg-secondary]="selectedSimForMapping.provider === 'BSNL' || selectedSimForMapping.provider === 'Other'" [class.text-dark]="selectedSimForMapping.provider === 'Vi'">
+                  {{ selectedSimForMapping.provider }}
+                </span>
+                <span class="badge bg-light text-dark border">{{ selectedSimForMapping.simType }}</span>
+              </div>
+            </div>
+
+            <!-- 4. Optional Remarks -->
+            <div class="mb-2">
+              <label class="form-label text-muted small">Mapping Remarks (Optional)</label>
+              <input type="text" class="form-control form-control-sm" placeholder="e.g. Standard SIM mapping for project" formControlName="remarks" />
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeMappingModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary-custom btn-sm">
+              <i class="bi bi-link-45deg me-1"></i> Confirm Mapping
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

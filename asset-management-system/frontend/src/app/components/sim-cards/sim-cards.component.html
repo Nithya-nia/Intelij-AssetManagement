@@ -1,0 +1,329 @@
+<div class="sim-cards-container">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-dark">SIM Card Management</h4>
+      <p class="text-muted small mb-0">Manage cellular identity profiles, network carriers, hardware status, and validity</p>
+    </div>
+    <button class="btn btn-primary-custom" (click)="openAddModal()">
+      <i class="bi bi-sim-fill"></i> Add SIM Card
+    </button>
+  </div>
+
+  <!-- Success/Error Feedback -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show small" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="card card-custom mb-4 p-3 bg-white">
+    <div class="row g-3">
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search by SIM ID, Mobile Number, Provider, or Employee..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="applyFilter()"
+          />
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select class="form-select" [(ngModel)]="selectedProvider" (change)="applyFilter()">
+          <option value="ALL">All Network Providers</option>
+          <option *ngFor="let p of providers" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilter()">
+          <option value="ALL">All Status</option>
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <button class="btn btn-outline-secondary w-100" (click)="applyFilter()">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIMs Table -->
+  <div class="card card-custom">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-modern mb-0">
+          <thead>
+            <tr>
+              <th>SIM ID</th>
+              <th>Mobile Number</th>
+              <th>Network Provider</th>
+              <th>SIM Type</th>
+              <th>Status</th>
+              <th>Assigned Employee & Phone</th>
+              <th>Latest Recharge Validity</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let sim of sims">
+              <td class="fw-semibold text-primary">{{ sim.simId }}</td>
+              <td class="fw-bold">{{ sim.mobileNumber }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-danger-subtle text-danger border': sim.provider === 'Airtel',
+                  'bg-primary-subtle text-primary border': sim.provider === 'Jio',
+                  'bg-warning-subtle text-warning-emphasis border': sim.provider === 'Vi',
+                  'bg-success-subtle text-success border': sim.provider === 'BSNL',
+                  'bg-light text-muted border': sim.provider === 'Other'
+                }">
+                  {{ sim.provider }}
+                </span>
+              </td>
+              <td>
+                <span class="small text-muted">{{ sim.simType }}</span>
+              </td>
+              <td>
+                <span *ngIf="sim.status === 'Available'" class="badge badge-status-available">Available</span>
+                <span *ngIf="sim.status === 'Assigned'" class="badge badge-status-assigned">Assigned</span>
+                <span *ngIf="sim.status === 'Inactive'" class="badge badge-status-inactive">Inactive</span>
+              </td>
+              <td>
+                <div *ngIf="sim.assignedEmployeeName">
+                  <div class="fw-semibold text-dark">{{ sim.assignedEmployeeName }}</div>
+                  <div class="small text-muted"><i class="bi bi-phone"></i> {{ sim.assignedMobileName || sim.assignedMobileId }}</div>
+                </div>
+                <div *ngIf="!sim.assignedEmployeeName" class="text-muted small">
+                  — Unassigned —
+                </div>
+              </td>
+              <td>
+                <div *ngIf="sim.latestPlanEndDate">
+                  <div class="small fw-semibold">{{ sim.latestPlanEndDate }}</div>
+                  <div class="small text-muted">₹{{ sim.latestRechargeAmount }} ({{ sim.latestRechargePlan }})</div>
+                </div>
+                <div *ngIf="!sim.latestPlanEndDate" class="text-muted small">
+                  No recharge history
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-info" (click)="viewDetails(sim)" title="View Assignment & Recharge History">
+                    <i class="bi bi-eye"></i> Details
+                  </button>
+                  <button class="btn btn-outline-secondary ms-1" (click)="openEditModal(sim)" title="Edit SIM">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="loading">
+              <td colspan="8" class="text-center py-5">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading SIM cards...
+              </td>
+            </tr>
+            <tr *ngIf="!loading && sims.length === 0">
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-sim fs-2 d-block mb-2 text-secondary"></i>
+                No SIM cards match your query.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit SIM Modal -->
+<div *ngIf="showFormModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showFormModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-sim me-2 text-primary"></i>
+          {{ isEditing ? 'Edit SIM Card' : 'Register New SIM Card' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeFormModal()"></button>
+      </div>
+      <form [formGroup]="simForm" (ngSubmit)="saveSim()">
+        <div class="modal-body p-4">
+          <div *ngIf="errorMessage" class="alert alert-danger small p-2 mb-3">
+            {{ errorMessage }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">SIM ID <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. SIM-105"
+                formControlName="simId"
+                [class.is-invalid]="simForm.get('simId')?.touched && simForm.get('simId')?.invalid"
+              />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Mobile Number (10 Digits) <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. 9876543210"
+                formControlName="mobileNumber"
+                [class.is-invalid]="simForm.get('mobileNumber')?.touched && simForm.get('mobileNumber')?.invalid"
+              />
+              <div class="invalid-feedback small">Valid 10-digit mobile number required.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Network Provider <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="provider">
+                <option *ngFor="let p of providers" [value]="p">{{ p }}</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">SIM Type <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="simType">
+                <option value="Physical SIM">Physical SIM</option>
+                <option value="eSIM">eSIM</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">SIM Serial Number (Optional)</label>
+              <input type="text" class="form-control" placeholder="e.g. 8991..." formControlName="simSerialNumber" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="status">
+                <option value="Available">Available</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-check-lg"></i> {{ isEditing ? 'Update SIM' : 'Save SIM' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SIM Details: History & Recharges Modal -->
+<div *ngIf="showHistoryModal" class="modal-backdrop fade show"></div>
+<div *ngIf="showHistoryModal" class="modal show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bi bi-sim me-2 text-primary"></i> SIM Profile: {{ selectedSim?.provider }} ({{ selectedSim?.mobileNumber }})
+        </h5>
+        <button type="button" class="btn-close" (click)="closeHistoryModal()"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-pills mb-3 border-bottom pb-2">
+          <li class="nav-item">
+            <button class="nav-link btn-sm py-1 px-3" [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">
+              <i class="bi bi-clock-history me-1"></i> Assignment History ({{ simHistory.length }})
+            </button>
+          </li>
+          <li class="nav-item ms-2">
+            <button class="nav-link btn-sm py-1 px-3" [class.active]="activeTab === 'recharges'" (click)="activeTab = 'recharges'">
+              <i class="bi bi-wallet2 me-1"></i> Recharge History ({{ simRecharges.length }})
+            </button>
+          </li>
+        </ul>
+
+        <div *ngIf="loadingHistory" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <!-- Assignment History Tab -->
+        <div *ngIf="!loadingHistory && activeTab === 'history'">
+          <div class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee</th>
+                  <th>Assigned Phone</th>
+                  <th>Issued Date</th>
+                  <th>Returned Date</th>
+                  <th>Status</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of simHistory">
+                  <td class="fw-semibold">{{ item.employeeName }} <span class="text-muted small">({{ item.employeeId }})</span></td>
+                  <td>{{ item.mobileName }} <span class="text-muted small">({{ item.mobileId }})</span></td>
+                  <td>{{ item.issuedDate }}</td>
+                  <td>{{ item.returnedDate || '—' }}</td>
+                  <td>
+                    <span *ngIf="item.status === 'Active'" class="badge badge-status-active">Active</span>
+                    <span *ngIf="item.status === 'Returned'" class="badge badge-status-retired">Returned</span>
+                  </td>
+                  <td class="small text-muted">{{ item.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="simHistory.length === 0">
+                  <td colspan="6" class="text-center py-3 text-muted small">No past assignment records found for this SIM.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recharge History Tab -->
+        <div *ngIf="!loadingHistory && activeTab === 'recharges'">
+          <div class="table-responsive">
+            <table class="table table-sm table-modern table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Recharge Date</th>
+                  <th>Plan Name</th>
+                  <th>Amount</th>
+                  <th>Plan End Date</th>
+                  <th>Assigned Employee</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let rec of simRecharges">
+                  <td>{{ rec.rechargeDate }}</td>
+                  <td class="fw-semibold">{{ rec.rechargePlan }}</td>
+                  <td class="fw-bold text-success">₹{{ rec.rechargeAmount }}</td>
+                  <td>{{ rec.planEndDate }}</td>
+                  <td>{{ rec.employeeName }}</td>
+                  <td class="small text-muted">{{ rec.remarks || '—' }}</td>
+                </tr>
+                <tr *ngIf="simRecharges.length === 0">
+                  <td colspan="6" class="text-center py-3 text-muted small">No recharge history records found for this SIM.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
