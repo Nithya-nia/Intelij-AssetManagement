@@ -77,6 +77,7 @@ public class GlobalExceptionHandler {
         error.put("error", "Internal Server Error");
         error.put("message", ex.getMessage());
         System.out.println("Global exception handler");
+        System.out.println("Global exception handler for first-branch");
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
